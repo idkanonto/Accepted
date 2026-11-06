@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0f172a;
+  --color-panel: #1e293b;
+  --color-panel-2: #263548;
+  --color-line: #334155;
+  --color-cream: #f8fafc;
+  --color-muted: #94a3b8;
+  --color-accent: #10b981;
+  --color-accent-deep: #059669;
+  --color-accent-soft: #34d399;
+  --color-gold: #f59e0b;
+  --color-rose: #f43f5e;
+  --font-display: var(--font-space-grotesk), "Segoe UI", sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jbmono), ui-monospace, "SFMono-Regular", monospace;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-ink text-cream antialiased;
+  }
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-ink);
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-soft;
+  }
+  .panel {
+    @apply border border-line bg-panel;
+  }
+}
