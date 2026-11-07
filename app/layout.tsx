@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/components/auth-provider';
 import Nav from '@/components/nav';
 import Footer from '@/components/footer';
+import Analytics from '@/components/analytics';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -42,6 +43,7 @@ export default function RootLayout({
           <Nav />
           <main className="flex-1">{children}</main>
           <Footer />
+          <Analytics />
         </AuthProvider>
       </body>
     </html>

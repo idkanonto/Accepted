@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { Check, Lock } from 'lucide-react';
 import { useAuth } from './auth-provider';
+import { trackEvent } from '@/lib/track';
 
 /** AI tools render only for signed-in users. The API routes enforce this again server-side. */
 export default function RequireAuth({ children, what }: { children: ReactNode; what: string }) {
@@ -35,7 +36,13 @@ export default function RequireAuth({ children, what }: { children: ReactNode; w
           </li>
         ))}
       </ul>
-      <button onClick={openAuth} className="btn-primary mt-6 w-full">
+      <button
+        onClick={() => {
+          trackEvent('gate_cta_clicked', { what });
+          openAuth();
+        }}
+        className="btn-primary mt-6 w-full"
+      >
         Sign up or sign in
       </button>
     </div>

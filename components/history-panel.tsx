@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Search } from 'lucide-react';
+import { trackEvent } from '@/lib/track';
 
 type HistoryYear = { year: number; average: number; offers: number };
 type HistoryProgram = {
@@ -49,11 +50,19 @@ export default function HistoryPanel() {
   );
 
   function toggleSort(key: SortKey) {
-    setSort((current) =>
-      current.key === key
-        ? { key, dir: current.dir === 'asc' ? 'desc' : 'asc' }
-        : { key, dir: key === 'university' || key === 'program' ? 'asc' : 'desc' }
-    );
+    const next: { key: SortKey; dir: 'asc' | 'desc' } = {
+      key,
+      dir:
+        sort.key === key
+          ? sort.dir === 'asc'
+            ? 'desc'
+            : 'asc'
+          : key === 'university' || key === 'program'
+            ? 'asc'
+            : 'desc',
+    };
+    trackEvent('history_sort_changed', { key, dir: next.dir });
+    setSort(next);
   }
 
   const sortHeader = (key: SortKey, label: string, className = '') => (
@@ -132,6 +141,12 @@ export default function HistoryPanel() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onBlur={(e) =>
+                trackEvent('history_searched', {
+                  query: e.target.value,
+                  results: String(rows.length),
+                })
+              }
               aria-label="Search programs and universities"
               placeholder="Search a program or university…"
               className="input pl-9"
@@ -139,7 +154,10 @@ export default function HistoryPanel() {
           </div>
           <select
             value={university}
-            onChange={(e) => setUniversity(e.target.value)}
+            onChange={(e) => {
+              setUniversity(e.target.value);
+              trackEvent('history_filter_changed', { university: e.target.value });
+            }}
             aria-label="Filter by university"
             className="input md:w-56"
           >

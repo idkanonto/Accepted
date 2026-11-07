@@ -9,6 +9,7 @@ import {
   getSimulatorProgram,
 } from '@/lib/data/prompts';
 import { authFetch } from '@/lib/supabase/client';
+import { trackEvent } from '@/lib/track';
 import { useAuth } from './auth-provider';
 import ScoreRing from './score-ring';
 import {
@@ -266,6 +267,7 @@ export default function Simulator() {
     setCapReached(false);
     setPhase('prep');
     setTimeLeft(FORMATS[format].prep);
+    trackEvent('simulation_started', { program: program.code, format });
   }
 
   function progressSimulation() {
@@ -319,6 +321,14 @@ export default function Simulator() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? 'Could not score your answer.');
+        if (res.status === 429) {
+          trackEvent('quota_blocked', {
+            program: program.code,
+            limit: data.quota?.limit != null ? String(data.quota.limit) : null,
+          });
+        } else {
+          trackEvent('evaluation_failed', { program: program.code });
+        }
         setPhase('response');
         return;
       }
@@ -327,6 +337,13 @@ export default function Simulator() {
         setFeedback(toFeedback(data));
         setQuota(data.quota ?? null);
         setPhase('feedback');
+        trackEvent('evaluation_completed', {
+          program: program.code,
+          format,
+          score: String(data.score),
+          words: String(words),
+          quota_used: data.quota?.used != null ? String(data.quota.used) : null,
+        });
         return;
       }
       setQueuePosition(typeof data.position === 'number' ? data.position : null);

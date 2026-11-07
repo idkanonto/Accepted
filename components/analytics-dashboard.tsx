@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { computeStats, type Stats } from '@/lib/analytics';
 import type { Attempt } from '@/lib/storage';
 import { authFetch } from '@/lib/supabase/client';
+import { trackEvent } from '@/lib/track';
 import { useAuth } from './auth-provider';
 import { ArrowRight, Loader2, Sparkles, Trash2 } from 'lucide-react';
 
@@ -88,6 +89,7 @@ export default function AnalyticsDashboard() {
 
   async function askNova() {
     if (!stats) return;
+    trackEvent('breakdown_requested', { attempts: String(stats.total) });
     setLoadingSummary(true);
     setError(null);
     setSummary(null);

@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Check, Circle, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { UNIVERSITIES } from '@/lib/data/programs';
 import { PLANNER_KEY, academicPosition, readEcLevel, type EcLevel } from '@/lib/position';
 import { EcFit, ProgramTags, RangeBar } from './program-signals';
 import HistoryPanel from './history-panel';
+import { trackEvent } from '@/lib/track';
 
 type PlannedProgram = {
   id: string;
@@ -66,6 +67,7 @@ export default function Planner() {
   const [saved, setSaved] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [ecLevel, setEcLevel] = useState<EcLevel | null>(null);
+  const lastTrackedAverage = useRef<number | null>(null);
 
   useEffect(() => setEcLevel(readEcLevel()), []);
 
@@ -115,6 +117,7 @@ export default function Planner() {
     if (!program || selected.some((item) => item.id === program.id)) return;
     setSelected((current) => [...current, program]);
     setSaved(true);
+    trackEvent('program_added', { code: program.code });
   }
 
   function toggleTask(task: string) {
@@ -129,6 +132,10 @@ export default function Planner() {
     if (Number.isFinite(next) && next >= 0 && next <= 100) {
       setAverage(next);
       setSaved(true);
+      if (lastTrackedAverage.current === null || Math.abs(next - lastTrackedAverage.current) >= 5) {
+        lastTrackedAverage.current = next;
+        trackEvent('average_set', { average: String(next) });
+      }
     }
   }
 
@@ -156,7 +163,10 @@ export default function Planner() {
             key={t.id}
             role="tab"
             aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => {
+              setTab(t.id);
+              if (t.id === 'history') trackEvent('history_tab_viewed');
+            }}
             className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${
               tab === t.id
                 ? 'border-accent text-cream'
@@ -241,6 +251,7 @@ export default function Planner() {
                                 current.filter((item) => item.id !== program.id)
                               );
                               setSaved(true);
+                              trackEvent('program_removed', { code: program.code });
                             }}
                             aria-label={`Remove ${program.name}`}
                             className="shrink-0 rounded-lg p-2 text-muted transition hover:bg-panel hover:text-rose"
@@ -331,12 +342,18 @@ export default function Planner() {
                 <span className="chip">{remaining} left</span>
               </div>
               <div className="mt-5 space-y-1">
-                {CHECKLIST.map((task) => {
+                {CHECKLIST.map((task, taskIndex) => {
                   const done = completed.includes(task);
                   return (
                     <button
                       key={task}
-                      onClick={() => toggleTask(task)}
+                      onClick={() => {
+                        trackEvent('checklist_toggled', {
+                          task_index: String(taskIndex),
+                          done: String(!done),
+                        });
+                        toggleTask(task);
+                      }}
                       aria-pressed={done}
                       className="flex w-full items-start gap-3 rounded-lg px-2 py-3 text-left transition hover:bg-ink"
                     >

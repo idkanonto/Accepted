@@ -6,6 +6,7 @@ import { UNIVERSITIES } from '@/lib/data/programs';
 import { readPlannerAverage } from '@/lib/position';
 import { ProgramTags, RangeBar } from './program-signals';
 import { ArrowRight, Search } from 'lucide-react';
+import { trackEvent } from '@/lib/track';
 
 export default function Vault() {
   const [uniKey, setUniKey] = useState<string>('waterloo');
@@ -114,6 +115,9 @@ export default function Vault() {
                 <span className="text-xs font-medium text-gold">Deadline: {program.deadline}</span>
                 <Link
                   href={`/simulator?program=${program.code}`}
+                  onClick={() =>
+                    trackEvent('practice_clicked', { code: program.code, program: program.name })
+                  }
                   className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-line bg-panel px-3 text-xs font-semibold text-accent transition hover:border-accent/50"
                 >
                   Practice prompt <ArrowRight className="h-3 w-3" />
@@ -159,6 +163,7 @@ export default function Vault() {
                   <td className="p-4 text-right">
                     <Link
                       href={`/simulator?program=${p.code}`}
+                      onClick={() => trackEvent('practice_clicked', { code: p.code, program: p.name })}
                       className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-line bg-ink px-3 py-1.5 text-xs font-medium text-accent-soft transition hover:border-accent/50"
                     >
                       Practice Prompt <ArrowRight className="h-3 w-3" />

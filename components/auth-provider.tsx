@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { User } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase/client';
 import AuthModal from './auth-modal';
+import { trackEvent } from '@/lib/track';
 
 type AuthContextValue = {
   user: User | null;
@@ -46,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     openAuth: () => setAuthOpen(true),
     closeAuth: () => setAuthOpen(false),
     signOut: async () => {
+      trackEvent('sign_out');
       await getSupabase().auth.signOut();
       setUser(null);
     },
