@@ -213,7 +213,7 @@ export default function Planner() {
             <button
               onClick={addProgram}
               disabled={!choice || selected.some((program) => program.id === choice)}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-white transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-ink transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus className="h-4 w-4" /> Add program
             </button>
@@ -308,7 +308,7 @@ export default function Planner() {
               step="1"
               value={average}
               onChange={(event) => updateAverage(event.target.value)}
-              className="mt-3 w-full accent-[#456b52]"
+              className="mt-3 w-full accent-[#d5b893]"
             />
             <div className="flex justify-between text-[11px] text-muted">
               <span>50%</span><span>100%</span>

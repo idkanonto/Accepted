@@ -229,7 +229,7 @@ export default function MockInterview() {
             <button
               onClick={beginInterview}
               disabled={authLoading}
-              className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-soft disabled:opacity-60"
+              className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-semibold text-ink transition hover:bg-accent-soft disabled:opacity-60"
             >
               {authLoading ? 'Checking your account…' : 'Start mock interview'}
               {!authLoading && <ArrowRight className="h-4 w-4" />}
@@ -260,8 +260,8 @@ export default function MockInterview() {
                 onClick={recording ? stopRecording : startRecording}
                 className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
                   recording
-                    ? 'bg-rose text-white hover:opacity-90'
-                    : 'bg-accent px-4 text-white hover:bg-accent-soft'
+                    ? 'bg-mortuum text-cream hover:opacity-90'
+                    : 'bg-accent px-4 text-ink hover:bg-accent-soft'
                 }`}
               >
                 {recording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -293,7 +293,7 @@ export default function MockInterview() {
               <button
                 onClick={advance}
                 disabled={recording}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-soft disabled:opacity-50"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-5 text-sm font-semibold text-ink transition hover:bg-accent-soft disabled:opacity-50"
               >
                 {questionIndex === questions.length - 1 ? 'Finish and review' : 'Next question'}
                 <ArrowRight className="h-4 w-4" />

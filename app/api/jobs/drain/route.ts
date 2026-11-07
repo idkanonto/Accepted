@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { drainQueue, dailyUsage } from '@/lib/queue';
 
@@ -15,7 +16,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Not configured' }, { status: 404 });
   }
   const provided = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
-  if (provided !== secret) {
+  const a = Buffer.from(provided);
+  const b = Buffer.from(secret);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

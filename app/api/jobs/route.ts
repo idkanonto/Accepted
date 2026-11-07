@@ -1,4 +1,4 @@
-import { after, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getSessionUser, getSupabaseAdmin } from '@/lib/supabase/server';
 import { drainQueue } from '@/lib/queue';
 
@@ -75,13 +75,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Could not queue your answer.' }, { status: 500 });
   }
 
-  after(async () => {
-    try {
-      await drainQueue();
-    } catch (issue) {
-      console.error('Background feedback queue drain failed:', issue);
-    }
-  });
+  // Score now (usually 2-6s) so the first status poll already has the result.
+  try {
+    await drainQueue();
+  } catch (issue) {
+    console.error('Feedback queue drain failed:', issue);
+  }
 
   return NextResponse.json({ id: data.id, queued: null }, { status: 202 });
 }

@@ -5,6 +5,7 @@ import path from 'node:path';
 export const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 export const FALLBACK_MODEL = 'gemini-3.5-flash';
 
+let THINKING_OFF = true; // flipped off if the model rejects thinkingConfig
 let cachedClient: GoogleGenerativeAI | null = null;
 
 function getClient(): GoogleGenerativeAI {
@@ -49,7 +50,9 @@ async function run(
       maxOutputTokens,
       responseMimeType: 'application/json',
       responseSchema: schema as never,
-    },
+      // Gemini 3 Flash: reasoning tokens are the main source of latency and token spend.
+      ...(THINKING_OFF ? { thinkingConfig: { thinkingLevel: 'minimal' } } : {}),
+    } as never,
   });
   const result = await m.generateContent(prompt);
   return result.response.text();
@@ -106,6 +109,11 @@ export async function generateJSON<T>(
       } catch (e) {
         lastError = e;
         const msg = e instanceof Error ? e.message : '';
+        if (THINKING_OFF && /thinking/i.test(msg)) {
+          THINKING_OFF = false; // older model: retry without the setting
+          attempt--;
+          continue;
+        }
         const retryable = /INVALID_JSON|503|429|UNAVAILABLE|overload|resource|rate/i.test(msg);
         if (!retryable) throw e;
         if (/429|RESOURCE_EXHAUSTED|rate.?limit|503|UNAVAILABLE|overload/i.test(msg)) {

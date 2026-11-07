@@ -65,7 +65,7 @@ export default function Home() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/planner"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-soft"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-ink transition hover:bg-accent-soft"
               >
                 Build my application plan <ArrowRight className="h-4 w-4" />
               </Link>
@@ -109,8 +109,9 @@ export default function Home() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {PATHWAYS.map((item) => (
-            <article
+            <Link
               key={item.number}
+              href={item.href}
               className="group flex min-h-64 flex-col rounded-2xl border border-line bg-panel p-5 transition hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-md sm:p-6"
             >
               <div className="flex items-center justify-between">
@@ -123,34 +124,31 @@ export default function Home() {
               </div>
               <h3 className="mt-7 text-xl font-medium text-cream">{item.title}</h3>
               <p className="mt-2 flex-1 text-sm leading-6 text-muted">{item.body}</p>
-              <Link
-                href={item.href}
-                className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-accent transition group-hover:gap-3"
-              >
+              <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-accent transition group-hover:gap-3">
                 {item.action} <ArrowRight className="h-4 w-4" />
-              </Link>
-            </article>
+              </span>
+            </Link>
           ))}
         </div>
       </section>
 
       <section className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
-        <div className="flex flex-col gap-6 rounded-2xl bg-[#314f3b] p-6 text-white sm:flex-row sm:items-center sm:justify-between sm:p-8">
+        <div className="flex flex-col gap-6 rounded-2xl bg-accent-deep p-6 text-cream sm:flex-row sm:items-center sm:justify-between sm:p-8">
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d9e7d4]">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
               Thoughtful practice beats guesswork
             </p>
             <h2 className="mt-3 text-2xl font-medium sm:text-3xl">
               Start with one program. Make one useful improvement.
             </h2>
-            <p className="mt-3 text-sm leading-6 text-white/80">
+            <p className="mt-3 text-sm leading-6 text-cream/80">
               Feedback is a practice aid, not an admissions decision. Your strongest
               answers still come from your own experiences and reflection.
             </p>
           </div>
           <Link
             href="/simulator"
-            className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-[#314f3b] transition hover:bg-[#edf2e8]"
+            className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-ink transition hover:bg-accent-soft"
           >
             Choose a practice prompt <Target className="h-4 w-4" />
           </Link>

@@ -4,16 +4,16 @@ import { generateJSON, getPersona } from '@/lib/ai';
 const DAILY_CAP = Number(process.env.GEMINI_DAILY_CAP || 250);
 const MAX_ATTEMPTS = 5;
 const MAX_DRAIN_MS = 8000;
-const SPACE_BETWEEN_CALLS_MS = 400;
+const SPACE_BETWEEN_CALLS_MS = 100;
 
 const SCHEMA = {
   type: 'OBJECT',
   properties: {
     score: { type: 'INTEGER', description: 'Score from 0 to 100.' },
-    verdict: { type: 'STRING', description: 'Two to three sentences. Direct, no praise.' },
+    verdict: { type: 'STRING', description: 'Two sentences. Direct, no praise.' },
     strengths: { type: 'ARRAY', items: { type: 'STRING' } },
     fixes: { type: 'ARRAY', items: { type: 'STRING' } },
-    rewrite: { type: 'STRING' },
+    rewrite: { type: 'STRING', description: 'At most 120 words.' },
   },
   required: ['score', 'verdict', 'strengths', 'fixes', 'rewrite'],
 };
@@ -80,7 +80,7 @@ export async function drainQueue(): Promise<{ processed: number; capReached: boo
         strengths: string[];
         fixes: string[];
         rewrite: string;
-      }>(buildPrompt(job), SCHEMA, 2400);
+      }>(buildPrompt(job), SCHEMA, 1200);
       if (
         !Number.isFinite(result.score) ||
         typeof result.verdict !== 'string' ||

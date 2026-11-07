@@ -84,7 +84,7 @@ npm run dev
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `.env.local` | `sb_publishable_…` — safe in the browser |
 | `SUPABASE_SECRET_KEY` | `.env.local` | `sb_secret_…` — **server-only, never commit** |
 | `GEMINI_API_KEY` | `.env.local` | Server-only. |
-| `GEMINI_MODEL` | `.env.local` | Default `gemini-3.5-flash`. |
+| `GEMINI_MODEL` | `.env.local` | Default `gemini-3.5-flash` (thinking set to minimal for speed). |
 | `GEMINI_DAILY_CAP` | `.env.local` | Default `250`. |
 | `CRON_SECRET` | optional | Random string for `/api/jobs/drain`. |
 
