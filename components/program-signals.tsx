@@ -38,7 +38,7 @@ export function RangeBar({ label, average }: { label: string; average?: number |
 export function ProgramTags({ req }: { req: string }) {
   const { longAnswer, background } = suppSignals(req);
   if (!longAnswer && !background) return null;
-  const chip = 'rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-accent-soft';
+  const chip = 'rounded-md border border-line px-2 py-0.5 text-[11px] font-medium text-accent-soft';
   return (
     <div className="flex flex-wrap gap-1.5">
       {longAnswer && <span className={chip}>Long answer</span>}

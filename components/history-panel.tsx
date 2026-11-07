@@ -14,6 +14,8 @@ type HistoryProgram = {
   high: number;
   byYear: HistoryYear[];
 };
+type SortKey = 'university' | 'program' | 'offers' | 'average';
+
 type Payload = {
   totalOffers: number;
   overallAverage: number;
@@ -26,7 +28,10 @@ export default function HistoryPanel() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [university, setUniversity] = useState('all');
-  const [sort, setSort] = useState<'average' | 'offers' | 'name'>('average');
+  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({
+    key: 'average',
+    dir: 'desc',
+  });
 
   useEffect(() => {
     fetch('/history.json')
@@ -43,6 +48,28 @@ export default function HistoryPanel() {
     [data]
   );
 
+  function toggleSort(key: SortKey) {
+    setSort((current) =>
+      current.key === key
+        ? { key, dir: current.dir === 'asc' ? 'desc' : 'asc' }
+        : { key, dir: key === 'university' || key === 'program' ? 'asc' : 'desc' }
+    );
+  }
+
+  const sortHeader = (key: SortKey, label: string, className = '') => (
+    <th
+      onClick={() => toggleSort(key)}
+      aria-sort={sort.key === key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}
+      title={`Sort by ${label.toLowerCase()}`}
+      className={`cursor-pointer select-none whitespace-nowrap px-4 py-3 font-semibold transition hover:text-cream ${className}`}
+    >
+      {label}
+      <span className="ml-1 inline-block w-3 text-accent">
+        {sort.key === key ? (sort.dir === 'asc' ? '↑' : '↓') : ''}
+      </span>
+    </th>
+  );
+
   const rows = useMemo(() => {
     if (!data) return [];
     const q = query.trim().toLowerCase();
@@ -51,13 +78,15 @@ export default function HistoryPanel() {
         (university === 'all' || p.university === university) &&
         (!q || p.program.toLowerCase().includes(q) || p.university.toLowerCase().includes(q))
     );
-    return filtered.sort((a, b) =>
-      sort === 'average'
-        ? b.average - a.average || b.offers - a.offers
-        : sort === 'offers'
-          ? b.offers - a.offers || b.average - a.average
-          : a.program.localeCompare(b.program)
-    );
+    const dir = sort.dir === 'asc' ? 1 : -1;
+    return filtered.sort((a, b) => {
+      if (sort.key === 'university') {
+        return a.university.localeCompare(b.university) * dir || a.program.localeCompare(b.program);
+      }
+      if (sort.key === 'program') return a.program.localeCompare(b.program) * dir;
+      if (sort.key === 'offers') return (a.offers - b.offers) * dir || b.average - a.average;
+      return (a.average - b.average) * dir || b.offers - a.offers;
+    });
   }, [data, query, university, sort]);
 
   if (error) {
@@ -121,16 +150,6 @@ export default function HistoryPanel() {
               </option>
             ))}
           </select>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as typeof sort)}
-            aria-label="Sort programs"
-            className="input md:w-44"
-          >
-            <option value="average">Highest average</option>
-            <option value="offers">Most offers</option>
-            <option value="name">Program name</option>
-          </select>
         </div>
 
         <p className="mt-3 text-xs leading-5 text-muted">
@@ -143,12 +162,16 @@ export default function HistoryPanel() {
           <table className="w-full text-sm">
             <thead className="sticky top-16 z-10 bg-ink">
               <tr className="border-b border-line text-left text-xs text-muted">
-                <th className="hidden whitespace-nowrap px-4 py-3 font-semibold sm:table-cell">University</th>
-                <th className="px-4 py-3 font-semibold">Program</th>
-                <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">Offers</th>
-                <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">Average</th>
-                <th className="hidden whitespace-nowrap px-4 py-3 text-right font-semibold md:table-cell">Range</th>
-                <th className="hidden whitespace-nowrap px-4 py-3 text-center font-semibold lg:table-cell">Recent years</th>
+                {sortHeader('university', 'University', 'hidden sm:table-cell')}
+                {sortHeader('program', 'Program')}
+                {sortHeader('offers', 'Offers', 'text-right')}
+                {sortHeader('average', 'Average', 'text-right')}
+                <th className="hidden whitespace-nowrap px-4 py-3 text-right font-semibold md:table-cell">
+                  Range
+                </th>
+                <th className="hidden whitespace-nowrap px-4 py-3 text-center font-semibold lg:table-cell">
+                  Recent years
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
