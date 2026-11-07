@@ -23,6 +23,18 @@ import {
 
 type Format = 'video' | 'written';
 type Phase = 'idle' | 'prep' | 'response' | 'waiting' | 'feedback' | 'done';
+type StoredDraft = {
+  programCode: string;
+  format: Format;
+  phase: Phase;
+  timeLeft: number;
+  prompt: string;
+  answer: string;
+  feedback: Feedback | null;
+  jobId: string | null;
+};
+
+const DRAFT_KEY = 'accepted-simulator-draft';
 
 const FORMATS: Record<Format, { label: string; prep: number; response: number }> = {
   video: { label: 'Video Response (30s prep / 2 min record)', prep: 30, response: 120 },
@@ -53,6 +65,7 @@ export default function Simulator() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const [capReached, setCapReached] = useState(false);
+  const [draftOwner, setDraftOwner] = useState<string | null>(null);
 
   const program = getSimulatorProgram(programCode) ?? SIMULATOR_PROGRAMS[0];
 
@@ -61,6 +74,74 @@ export default function Simulator() {
     if (p && getSimulatorProgram(p)) setProgramCode(p);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    const owner = user?.id ?? 'guest';
+    const key = `${DRAFT_KEY}:${owner}`;
+    try {
+      const stored = localStorage.getItem(key) ??
+        (user ? localStorage.getItem(`${DRAFT_KEY}:guest`) : null);
+      if (stored) {
+        const draft = JSON.parse(stored) as Partial<StoredDraft>;
+        if (
+          typeof draft.programCode === 'string' &&
+          getSimulatorProgram(draft.programCode) &&
+          (draft.format === 'written' || draft.format === 'video') &&
+          typeof draft.prompt === 'string' &&
+          typeof draft.answer === 'string' &&
+          typeof draft.timeLeft === 'number' &&
+          ['idle', 'prep', 'response', 'waiting', 'feedback', 'done'].includes(
+            draft.phase ?? ''
+          )
+        ) {
+          setProgramCode(draft.programCode);
+          setFormat(draft.format);
+          const restoredPhase = draft.phase as Phase;
+          setPhase(restoredPhase === 'waiting' && !draft.jobId ? 'response' : restoredPhase);
+          setTimeLeft(Math.max(0, Math.floor(draft.timeLeft)));
+          setPrompt(draft.prompt);
+          setAnswer(draft.answer);
+          setFeedback(draft.feedback ?? null);
+          setJobId(typeof draft.jobId === 'string' ? draft.jobId : null);
+        }
+      }
+    } catch {
+      setError('Could not restore your saved practice draft.');
+    }
+    setDraftOwner(owner);
+  }, [authLoading, user]);
+
+  useEffect(() => {
+    if (!draftOwner || authLoading || draftOwner !== (user?.id ?? 'guest')) return;
+    try {
+      const draft: StoredDraft = {
+        programCode,
+        format,
+        phase,
+        timeLeft,
+        prompt,
+        answer,
+        feedback,
+        jobId,
+      };
+      localStorage.setItem(`${DRAFT_KEY}:${draftOwner}`, JSON.stringify(draft));
+    } catch {
+      setError('Browser storage is unavailable; this practice draft may not persist.');
+    }
+  }, [
+    draftOwner,
+    authLoading,
+    user,
+    programCode,
+    format,
+    phase,
+    timeLeft,
+    prompt,
+    answer,
+    feedback,
+    jobId,
+  ]);
 
   // Countdown
   useEffect(() => {
@@ -85,14 +166,20 @@ export default function Simulator() {
   useEffect(() => {
     if (!jobId) return;
     let stopped = false;
-    let timer: ReturnType<typeof setInterval> | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
     const tick = async () => {
       try {
         const res = await authFetch(`/api/jobs/${jobId}`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (res.status === 401) {
+            setError('Your sign-in expired. Sign in again to continue checking this evaluation.');
+          }
+          return;
+        }
         const data = await res.json();
         if (stopped) return;
+        setError(null);
         setQueuePosition(typeof data.position === 'number' ? data.position : null);
         setCapReached(Boolean(data.capReached));
 
@@ -105,22 +192,25 @@ export default function Simulator() {
             rewrite: data.rewrite,
           });
           setPhase('feedback');
-          if (timer) clearInterval(timer);
+          setJobId(null);
+          return;
         } else if (data.status === 'failed') {
           setError(data.error ?? 'Evaluation failed. Please try again.');
           setPhase('response');
-          if (timer) clearInterval(timer);
+          setJobId(null);
+          return;
         }
       } catch {
-        // transient network error — next tick retries
+        if (!stopped) setError('Connection interrupted. Checking your saved evaluation again shortly.');
+      } finally {
+        if (!stopped) timer = setTimeout(tick, 10_000);
       }
     };
 
-    tick();
-    timer = setInterval(tick, 3000);
+    void tick();
     return () => {
       stopped = true;
-      if (timer) clearInterval(timer);
+      if (timer) clearTimeout(timer);
     };
   }, [jobId]);
 
@@ -264,8 +354,8 @@ export default function Simulator() {
 
         <p className="text-xs leading-relaxed text-muted">
           {user
-            ? `Signed in as ${user.email} — written answers are scored by Nova and saved to your analytics.`
-            : 'Written answers are scored by Nova. Sign in when you submit to save your progress.'}
+            ? `Signed in as ${user.email} — your draft is saved on this device, and scored answers are saved to your account.`
+            : 'Your draft is saved on this device. Sign in with email to submit for scoring and save results to your account.'}
         </p>
       </aside>
 
@@ -382,6 +472,7 @@ export default function Simulator() {
                 ? 'Today’s free scoring limit is reached. Your answer stays in the queue and will be scored when the limit resets — or try again tomorrow.'
                 : 'Scoring runs in the background. Your result will appear here when it is ready; you can keep working while it processes.'}
             </p>
+            {error && <p role="status" className="mx-auto max-w-md text-xs text-gold">{error}</p>}
           </div>
         )}
 

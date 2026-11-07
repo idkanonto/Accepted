@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
-import GoogleIcon from './google-icon';
 
 export default function AuthForm() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
@@ -37,15 +36,6 @@ export default function AuthForm() {
     } finally {
       setLoading(false);
     }
-  }
-
-  async function google() {
-    setError(null);
-    const { error } = await getSupabase().auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) setError(error.message);
   }
 
   async function forgotPassword() {
@@ -83,21 +73,6 @@ export default function AuthForm() {
         >
           Create account
         </button>
-      </div>
-
-      <button
-        type="button"
-        onClick={google}
-        className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-line bg-ink py-2.5 text-sm font-medium text-cream transition hover:border-accent/50"
-      >
-        <GoogleIcon className="h-4 w-4" />
-        Continue with Google
-      </button>
-
-      <div className="flex items-center gap-3 text-xs text-muted">
-        <span className="h-px flex-1 bg-line" />
-        or
-        <span className="h-px flex-1 bg-line" />
       </div>
 
       <form onSubmit={submit} className="space-y-3">

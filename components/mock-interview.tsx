@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Check, Mic, MicOff, RotateCcw, Volume2 } from 'lucide-react';
+import { ArrowRight, Check, Mic, MicOff, RotateCcw } from 'lucide-react';
 import { SIMULATOR_PROGRAMS } from '@/lib/data/prompts';
 import { authFetch } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
@@ -56,21 +56,10 @@ export default function MockInterview() {
   const finalTranscriptRef = useRef('');
 
   useEffect(() => {
-    return () => {
-      recognitionRef.current?.stop();
-      window.speechSynthesis?.cancel();
-    };
+    return () => recognitionRef.current?.stop();
   }, []);
 
   const currentQuestion = questions[questionIndex];
-
-  function speak(text: string) {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-CA';
-    window.speechSynthesis.speak(utterance);
-  }
 
   async function beginInterview() {
     if (authLoading) return;
@@ -93,7 +82,6 @@ export default function MockInterview() {
       setQuestionIndex(0);
       setAnswer('');
       setPhase('answering');
-      if (data.questions?.[0]) speak(data.questions[0]);
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : 'Could not prepare your interview.');
       setPhase('ready');
@@ -172,7 +160,6 @@ export default function MockInterview() {
       setQuestionIndex(nextIndex);
       setAnswer('');
       finalTranscriptRef.current = '';
-      speak(questions[nextIndex]);
       return;
     }
 
@@ -194,7 +181,6 @@ export default function MockInterview() {
 
   function reset() {
     stopRecording();
-    window.speechSynthesis?.cancel();
     setQuestions([]);
     setAnswers([]);
     setQuestionIndex(0);
@@ -213,7 +199,8 @@ export default function MockInterview() {
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted sm:text-base">
           Answer three program-focused questions using your voice or keyboard. Your transcript
-          is reviewed for substance and clarity; Accepted never receives or stores your audio.
+          is reviewed for substance and clarity. Choose whether to use microphone transcription;
+          Accepted never receives or stores microphone audio.
         </p>
       </header>
 
@@ -264,12 +251,6 @@ export default function MockInterview() {
           <div>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="eyebrow">Question {questionIndex + 1} of {questions.length}</p>
-              <button
-                onClick={() => speak(currentQuestion)}
-                className="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-accent transition hover:bg-ink"
-              >
-                <Volume2 className="h-4 w-4" /> Read question aloud
-              </button>
             </div>
             <h2 className="mt-5 text-2xl font-medium leading-snug text-cream sm:text-3xl">
               {currentQuestion}
@@ -287,7 +268,9 @@ export default function MockInterview() {
                 {recording ? 'Stop speaking' : 'Answer by voice'}
               </button>
               <span className="text-xs text-muted">
-                {recording ? 'Listening… select stop when you are finished.' : 'Or type your response below.'}
+                {recording
+                  ? 'Listening… select stop when you are finished.'
+                  : 'Optional; your browser may send speech to its own recognition service. Or type below.'}
               </span>
             </div>
             <label htmlFor="interview-answer" className="mb-2 mt-5 block text-sm font-medium text-cream">

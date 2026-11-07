@@ -108,6 +108,9 @@ export async function generateJSON<T>(
         const msg = e instanceof Error ? e.message : '';
         const retryable = /INVALID_JSON|503|429|UNAVAILABLE|overload|resource|rate/i.test(msg);
         if (!retryable) throw e;
+        if (/429|RESOURCE_EXHAUSTED|rate.?limit|503|UNAVAILABLE|overload/i.test(msg)) {
+          break;
+        }
       }
     }
   }

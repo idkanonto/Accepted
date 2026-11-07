@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { getSessionUser, getSupabaseAdmin } from '@/lib/supabase/server';
-import { dailyUsage } from '@/lib/queue';
+import { dailyUsage, drainQueue } from '@/lib/queue';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 const DAILY_CAP = Number(process.env.GEMINI_DAILY_CAP || 250);
 
@@ -19,7 +20,7 @@ export async function GET(
   const { data, error } = await getSupabaseAdmin()
     .from('feedback_jobs')
     .select(
-      'id, user_id, status, score, verdict, strengths, fixes, rewrite, error, attempts, created_at'
+      'id, user_id, status, score, verdict, strengths, fixes, rewrite, error, attempts, created_at, claimed_at, not_before'
     )
     .eq('id', id)
     .single();
@@ -41,12 +42,32 @@ export async function GET(
     }
   }
 
+  const retryReady =
+    data.not_before === null || new Date(data.not_before).getTime() <= Date.now();
+  const staleClaim =
+    data.status === 'processing' &&
+    data.claimed_at !== null &&
+    new Date(data.claimed_at).getTime() < Date.now() - 2 * 60 * 1000;
+
+  if ((data.status === 'queued' && position === 1 && retryReady) || staleClaim) {
+    after(async () => {
+      try {
+        await drainQueue();
+      } catch (issue) {
+        console.error('Background feedback queue recovery failed:', issue);
+      }
+    });
+  }
+
   try {
     return NextResponse.json({
       id: data.id,
       status: data.status,
       position,
-      capReached: (await dailyUsage()) >= DAILY_CAP,
+      capReached:
+        data.status === 'queued' || data.status === 'processing'
+          ? (await dailyUsage()) >= DAILY_CAP
+          : false,
       score: data.score,
       verdict: data.verdict,
       strengths: data.strengths,

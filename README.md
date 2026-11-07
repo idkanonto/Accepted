@@ -16,13 +16,15 @@ Stack: **Next.js 15 (Vercel) · Supabase (auth + database) · Gemini (AI scoring
   references, competitive averages, formats, deadlines, search, and one-click practice.
 - **OUAC & Chance Planner** — keep a private program shortlist, application
   checklist, and broad academic-alignment view in your browser.
-- **Voice mock interviews** — practise with spoken questions, browser speech
-  recognition, and a structured Gemini review of the submitted transcript.
+- **Voice mock interviews** — read on-screen practice questions, optionally
+  transcribe answers with browser speech recognition, and receive a structured
+  Gemini review of the submitted transcript. Microphone audio is not uploaded to
+  Accepted.
 - **Nova AI scoring** — written answers are scored 0–100 with a verdict, strengths,
   fixes, and a model rewrite.
 - **Nova Analytics** — attempts are saved to your account: scores by program, an
   8-week trend, recent attempts, and an AI breakdown of where to focus next.
-- **Sign in** — email/password or Google, powered by Supabase Auth.
+- **Sign in** — email/password, powered by Supabase Auth.
 
 ## How scoring stays fast and unblocked
 
@@ -34,7 +36,10 @@ Scoring runs through a queue, never directly from the browser:
    (`FOR UPDATE SKIP LOCKED`), calls Gemini, and writes the result back.
 3. A daily counter caps evaluations (default **250/day** — the Gemini Flash free
    tier). When a 429/503 arrives, the job is requeued with exponential backoff.
-4. Your browser polls the job status without triggering or waiting on scoring.
+4. Your browser polls status separately. If the first queued job is ready, a
+   background worker is started after the status response; abandoned processing
+   jobs are reclaimed after a two-minute lease. Your draft and active job ID are
+   saved in browser storage, so navigating away and returning does not discard them.
 
 An optional scheduler endpoint (`POST /api/jobs/drain`, protected by
 `CRON_SECRET`) can also drive the queue, including older queued jobs.
@@ -43,29 +48,27 @@ An optional scheduler endpoint (`POST /api/jobs/drain`, protected by
 
 ### 1. Supabase — create the schema
 
-Dashboard → **SQL Editor** → New query → paste the contents of
-`supabase/migrations/001_init.sql` → **Run**. For an existing installation,
-also run `supabase/migrations/002_restrict_queue_functions.sql` to remove public
-access to privileged queue functions.
+Dashboard → **SQL Editor** → run the SQL files in `supabase/migrations` in
+numeric order. Existing installations should run migrations `002` and `003`:
+`002` restricts public access to privileged queue functions, and `003` recovers
+jobs when a background worker times out.
 
 This creates `feedback_jobs`, `daily_usage`, `summary_usage`, Row Level Security
 policies, and the queue functions. Nothing else is required — Supabase Auth is
 built in.
 
-### 2. Supabase — auth settings
+### 2. Supabase — email auth settings
 
-Dashboard → **Authentication** → **Sign In / Providers** → **Email**:
+Dashboard → **Authentication** → **Sign In / Providers** → **Email**. Enable email
+sign-in and choose whether to require email confirmation. For production, configure
+your own SMTP provider so confirmation and password-reset messages are delivered
+reliably.
 
-- Turn **off** "Confirm email" if you want sign-up to be instant (recommended for
-  students). Leave it on if you want the extra security of email verification.
-
-Optional — Google sign-in:
-
-- Dashboard → **Authentication** → **Sign In / Providers** → **Google** → enable.
-- You need a Google Cloud OAuth client (APIs & Services → Credentials → OAuth
-  client ID → Web). Add `https://<your-project>.supabase.co/auth/v1/callback` as
-  an authorized redirect URI, plus your Vercel domain under
-  **Authentication → URL Configuration → Redirect URLs**.
+Under **Authentication → URL Configuration**, set the production Site URL and
+allow the exact local and deployed app origins used for email confirmation and
+password resets (for example `http://localhost:3000/**` and
+`https://your-domain.example/**`). Email/password sign-in does not require Google
+OAuth credentials or a Google callback URL.
 
 ### 3. Local environment
 
@@ -126,7 +129,9 @@ select cron.schedule(
 - Privileged queue RPCs are executable only by `service_role`; browser-facing
   roles cannot claim jobs or alter evaluation records.
 - Mock interview audio is not uploaded or persisted. The submitted transcript is
-  sent to Gemini for the structured review.
+  sent to Gemini for the structured review. Optional microphone transcription
+  uses the browser's speech-recognition implementation, which may process speech
+  using that browser provider's service and privacy terms.
 - If a key is ever shared in chat or committed, **roll it** (Supabase → Settings →
   API; Google AI Studio → API keys).
 

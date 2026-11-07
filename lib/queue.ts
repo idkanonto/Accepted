@@ -3,7 +3,7 @@ import { generateJSON, getPersona } from '@/lib/ai';
 
 const DAILY_CAP = Number(process.env.GEMINI_DAILY_CAP || 250);
 const MAX_ATTEMPTS = 5;
-const MAX_DRAIN_MS = 9000;
+const MAX_DRAIN_MS = 8000;
 const SPACE_BETWEEN_CALLS_MS = 400;
 
 const SCHEMA = {
@@ -80,7 +80,7 @@ export async function drainQueue(): Promise<{ processed: number; capReached: boo
         strengths: string[];
         fixes: string[];
         rewrite: string;
-      }>(buildPrompt(job), SCHEMA);
+      }>(buildPrompt(job), SCHEMA, 2400);
       if (
         !Number.isFinite(result.score) ||
         typeof result.verdict !== 'string' ||
@@ -105,11 +105,10 @@ export async function drainQueue(): Promise<{ processed: number; capReached: boo
       const attempts = (job.attempts ?? 0) + 1;
 
       if ((RATE_LIMIT.test(message) || BAD_JSON.test(message)) && attempts < MAX_ATTEMPTS) {
-        // Rate limits get exponential backoff; a truncated/invalid JSON response
-        // is a transient hiccup, so retry it quickly instead of making the
-        // student wait two minutes.
+        // Back off briefly on provider limits, while allowing active polling
+        // requests to restart the queue as soon as the retry becomes eligible.
         const backoffMs = RATE_LIMIT.test(message)
-          ? Math.min(60_000 * 2 ** attempts, 3_600_000)
+          ? Math.min(30_000 * 2 ** (attempts - 1), 3_600_000)
           : 5_000;
         const { error: requeueError } = await getSupabaseAdmin().rpc('requeue_feedback_job', {
           p_job_id: job.id,
