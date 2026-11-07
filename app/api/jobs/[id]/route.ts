@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
-const DAILY_CAP = Number(process.env.GEMINI_DAILY_CAP || 250);
+const DAILY_CAP = Number(process.env.GROQ_DAILY_CAP || 250);
 
 /** Read a job's status without doing background scoring work in the polling request. */
 export async function GET(

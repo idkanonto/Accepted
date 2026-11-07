@@ -1,23 +1,13 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-export const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
-export const FALLBACK_MODEL = 'gemini-3.5-flash';
+export const PRIMARY_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+export const FALLBACK_MODEL = process.env.GROQ_FALLBACK_MODEL || 'openai/gpt-oss-20b';
 
-let THINKING_OFF = true; // flipped off if the model rejects thinkingConfig
-let cachedClient: GoogleGenerativeAI | null = null;
-
-function getClient(): GoogleGenerativeAI {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
-    throw new Error('GEMINI_API_KEY is not set. Add it to .env.local (local) or Vercel env vars.');
-  }
-  if (!cachedClient) {
-    cachedClient = new GoogleGenerativeAI(key);
-  }
-  return cachedClient;
-}
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+// Groq answers in about a second; the abort is a safety net so a stalled
+// request can never hang a Vercel function until its timeout.
+const TIMEOUT_MS = 25_000;
 
 let cachedPersona: string | null = null;
 
@@ -36,32 +26,76 @@ export function getPersona(): string {
   return cachedPersona;
 }
 
+function normalizeSchema(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(normalizeSchema);
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(value)) {
+      // Groq expects JSON Schema type keywords; the Gemini-style schemas in
+      // this codebase use uppercase, which Groq's preprocessor rejects.
+      out[key] =
+        key === 'type' && typeof val === 'string' ? val.toLowerCase() : normalizeSchema(val);
+    }
+    // Groq's strict mode requires this on every object, including nested ones.
+    if (out.type === 'object' && out.properties && out.additionalProperties === undefined) {
+      out.additionalProperties = false;
+    }
+    return out;
+  }
+  return value;
+}
+
 async function run(
   model: string,
   prompt: string,
   schema: object,
   maxOutputTokens: number
 ): Promise<string> {
-  const genAI = getClient();
-  const m = genAI.getGenerativeModel({
-    model,
-    generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens,
-      responseMimeType: 'application/json',
-      responseSchema: schema as never,
-      // Gemini 3 Flash: reasoning tokens are the main source of latency and token spend.
-      ...(THINKING_OFF ? { thinkingConfig: { thinkingLevel: 'minimal' } } : {}),
-    } as never,
-  });
-  const result = await m.generateContent(prompt);
-  return result.response.text();
+  const key = process.env.GROQ_API_KEY;
+  if (!key) {
+    throw new Error('GROQ_API_KEY is not set. Add it to .env.local (local) or Vercel env vars.');
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.2,
+        max_tokens: maxOutputTokens,
+        // Reasoning tokens are pure latency here; the rubric is in the prompt.
+        reasoning_effort: 'low',
+        response_format: {
+          type: 'json_schema',
+          json_schema: { name: 'response', strict: true, schema: normalizeSchema(schema) },
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`GROQ_${res.status} ${body.slice(0, 300)}`);
+    }
+
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content;
+    if (typeof text !== 'string' || !text.trim()) {
+      throw new Error('GROQ_EMPTY_RESPONSE');
+    }
+    return text;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
- * Reasoning models spend tokens on thinking before the answer, so a short
- * budget can truncate the JSON mid-string. Try the raw text, then fenced
- * markdown, then the outermost {...} block.
+ * A reasoning model can wrap the object in prose or fences. Try the raw text,
+ * then fenced markdown, then the outermost {...} block.
  */
 export function extractJSON(text: string): unknown {
   const attempts: string[] = [text];
@@ -93,8 +127,7 @@ export async function generateJSON<T>(
   schema: object,
   maxOutputTokens = 8000
 ): Promise<T> {
-  const models =
-    PRIMARY_MODEL === FALLBACK_MODEL ? [PRIMARY_MODEL] : [PRIMARY_MODEL, FALLBACK_MODEL];
+  const models = PRIMARY_MODEL === FALLBACK_MODEL ? [PRIMARY_MODEL] : [PRIMARY_MODEL, FALLBACK_MODEL];
   let lastError: unknown = null;
 
   for (const model of models) {
@@ -109,16 +142,9 @@ export async function generateJSON<T>(
       } catch (e) {
         lastError = e;
         const msg = e instanceof Error ? e.message : '';
-        if (THINKING_OFF && /thinking/i.test(msg)) {
-          THINKING_OFF = false; // older model: retry without the setting
-          attempt--;
-          continue;
-        }
-        const retryable = /INVALID_JSON|503|429|UNAVAILABLE|overload|resource|rate/i.test(msg);
+        const retryable =
+          /INVALID_JSON|GROQ_429|GROQ_5|GROQ_408|aborted|fetch failed|ENOTFOUND|ETIMEDOUT/i.test(msg);
         if (!retryable) throw e;
-        if (/429|RESOURCE_EXHAUSTED|rate.?limit|503|UNAVAILABLE|overload/i.test(msg)) {
-          break;
-        }
       }
     }
   }

@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 @theme {
-  /* Palette: Space Cadet #25344F, Slate Gray #617891, Tan #D5B893, Coffee #6F4D38, Caput Mortuum #632024 */
-  --color-ink: #25344f;
-  --color-panel: #2d3e5c;
-  --color-panel-2: #364a6b;
-  --color-line: #45597a;
-  --color-cream: #f3ebe0;
-  --color-muted: #b4c0cf;
-  --color-accent: #d5b893;
-  --color-accent-deep: #6f4d38;
-  --color-accent-soft: #e6d2b6;
-  --color-gold: #d5b893;
-  --color-rose: #eba9ac;
-  --color-mortuum: #632024;
+  /* Academic navy base, brass accent, cool paper text. */
+  --color-ink: #0a1a2e;
+  --color-panel: #122a47;
+  --color-panel-2: #173453;
+  --color-line: #2d4f78;
+  --color-cream: #eaf0f7;
+  --color-muted: #a9bed8;
+  --color-accent: #d9a94e;
+  --color-accent-deep: #2b2317;
+  --color-accent-soft: #e7c684;
+  --color-gold: #d9a94e;
+  --color-rose: #e08b8b;
+  --color-mortuum: #5e1f24;
   --color-slate: #617891;
-  --font-display: var(--font-lora), Georgia, serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jbmono), ui-monospace, "SFMono-Regular", monospace;
 }
@@ -26,11 +26,11 @@
     background: var(--color-ink);
   }
   body {
-    @apply bg-ink text-cream antialiased;
+    @apply bg-ink font-sans text-cream antialiased;
   }
   ::selection {
-    background: #d5b893;
-    color: #25344f;
+    background: #d9a94e;
+    color: #0a1a2e;
   }
   h1,
   h2,
@@ -39,8 +39,8 @@
     text-wrap: balance;
   }
   :focus-visible {
-    outline: 3px solid #d5b893;
-    outline-offset: 3px;
+    outline: 3px solid #d9a94e;
+    outline-offset: 2px;
   }
   button,
   a,
@@ -63,9 +63,24 @@
 
 @layer components {
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-accent;
+    @apply text-xs font-semibold tracking-[0.08em] text-muted;
   }
   .panel {
-    @apply rounded-2xl border border-line bg-panel shadow-sm;
+    @apply rounded-xl border border-line bg-panel shadow-sm;
+  }
+  .btn-primary {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-ink transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-line bg-panel px-4 text-sm font-medium text-cream transition hover:border-accent/50 hover:bg-panel-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .input {
+    @apply w-full rounded-lg border border-line bg-ink px-3 py-2.5 text-sm text-cream outline-none transition placeholder:text-muted/70 focus:border-accent;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-medium text-muted;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-xs font-medium text-muted;
   }
 }

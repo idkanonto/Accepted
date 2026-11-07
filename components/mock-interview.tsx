@@ -41,6 +41,9 @@ declare global {
   }
 }
 
+const MAX_WORDS = 500;
+const MAX_CHARS = 4000;
+
 export default function MockInterview() {
   const { user, loading: authLoading, openAuth } = useAuth();
   const [phase, setPhase] = useState<Phase>('ready');
@@ -54,12 +57,18 @@ export default function MockInterview() {
   const [review, setReview] = useState<InterviewReview | null>(null);
   const recognitionRef = useRef<Recognition | null>(null);
   const finalTranscriptRef = useRef('');
+  const shouldRecordRef = useRef(false);
 
   useEffect(() => {
-    return () => recognitionRef.current?.stop();
+    return () => {
+      shouldRecordRef.current = false;
+      recognitionRef.current?.stop();
+    };
   }, []);
 
   const currentQuestion = questions[questionIndex];
+  const words = answer.trim() ? answer.trim().split(/\s+/).length : 0;
+  const overLimit = words > MAX_WORDS || answer.length > MAX_CHARS;
 
   async function beginInterview() {
     if (authLoading) return;
@@ -94,56 +103,119 @@ export default function MockInterview() {
       setError('Speech-to-text is not available in this browser. You can type your answer instead.');
       return;
     }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError('This browser cannot request microphone access. Type your answer instead.');
+      return;
+    }
 
     setError(null);
+    shouldRecordRef.current = true;
     finalTranscriptRef.current = answer.trim();
-    const recognition = new SpeechRecognition();
+
+    // Ask for the microphone explicitly. Some browsers never prompt
+    // SpeechRecognition on their own, and a denied permission fails silently.
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        stream.getTracks().forEach((track) => track.stop());
+        beginRecognition(new SpeechRecognition());
+      })
+      .catch(() => {
+        shouldRecordRef.current = false;
+        setRecording(false);
+        setError(
+          'Microphone access was blocked. Allow microphone access in your browser, or type your answer.'
+        );
+      });
+  }
+
+  function beginRecognition(recognition: Recognition) {
     recognition.lang = 'en-CA';
     recognition.continuous = true;
     recognition.interimResults = true;
+
     recognition.onresult = (event) => {
       let interim = '';
       let finalized = '';
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         const result = event.results[index];
-        if (result.isFinal) finalized += result[0].transcript;
-        else interim += result[0].transcript;
+        const transcript = result?.[0]?.transcript;
+        if (typeof transcript !== 'string') continue;
+        if (result.isFinal) finalized += transcript;
+        else interim += transcript;
       }
       if (finalized) {
         finalTranscriptRef.current = `${finalTranscriptRef.current} ${finalized}`.trim();
       }
       setAnswer(`${finalTranscriptRef.current}${interim ? ` ${interim}` : ''}`.trim());
     };
+
     recognition.onerror = (event) => {
-      setRecording(false);
-      setError(
-        event.error === 'not-allowed'
-          ? 'Microphone access was blocked. Allow microphone access or type your answer.'
-          : 'Speech recognition stopped. You can continue by typing your answer.'
-      );
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        shouldRecordRef.current = false;
+        setRecording(false);
+        setError('Microphone access was blocked. Allow microphone access or type your answer.');
+      } else if (event.error === 'audio-capture') {
+        shouldRecordRef.current = false;
+        setRecording(false);
+        setError('No microphone was found. Check your device or type your answer.');
+      } else if (event.error === 'no-speech') {
+        setError('No speech detected. Speak a little louder, or type your answer.');
+      }
+      // 'network' and 'aborted' are transient; onend restarts the session.
     };
+
     recognition.onend = () => {
-      setRecording(false);
-      recognitionRef.current = null;
+      if (!shouldRecordRef.current) {
+        setRecording(false);
+        recognitionRef.current = null;
+        return;
+      }
+      // Chrome ends the session after a short pause. Restart while the user is
+      // still answering; a brief delay avoids an InvalidStateError.
+      setTimeout(() => {
+        if (!shouldRecordRef.current) {
+          setRecording(false);
+          recognitionRef.current = null;
+          return;
+        }
+        try {
+          setError(null);
+          recognition.start();
+        } catch {
+          shouldRecordRef.current = false;
+          setRecording(false);
+          recognitionRef.current = null;
+          setError('Speech recognition stopped. Press the microphone to continue, or type your answer.');
+        }
+      }, 120);
     };
+
     recognitionRef.current = recognition;
     try {
       recognition.start();
       setRecording(true);
     } catch {
       recognitionRef.current = null;
+      shouldRecordRef.current = false;
       setError('Could not start speech recognition. Check microphone permissions or type your answer.');
     }
   }
 
   function stopRecording() {
+    shouldRecordRef.current = false;
     recognitionRef.current?.stop();
     setRecording(false);
+    setAnswer(finalTranscriptRef.current.trim());
   }
 
   async function advance() {
     if (answer.trim().length < 20) {
       setError('Add a complete response before moving to the next question.');
+      return;
+    }
+    if (overLimit) {
+      setError(`Keep each answer under ${MAX_WORDS} words so it fits the real format.`);
       return;
     }
 
@@ -197,10 +269,9 @@ export default function MockInterview() {
         <h1 className="mt-3 text-3xl font-medium leading-tight text-cream sm:text-4xl">
           Rehearse out loud. Reflect with purpose.
         </h1>
-        <p className="mt-3 text-sm leading-6 text-muted sm:text-base">
-          Answer three program-focused questions using your voice or keyboard. Your transcript
-          is reviewed for substance and clarity. Choose whether to use microphone transcription;
-          Accepted never receives or stores microphone audio.
+        <p className="mt-3 max-w-2xl text-base leading-7 text-muted">
+          Answer three program-focused questions using your voice or keyboard. Your transcript is
+          reviewed for substance and clarity. Microphone audio is never uploaded to Accepted.
         </p>
       </header>
 
@@ -213,67 +284,64 @@ export default function MockInterview() {
               Questions are generated for practice and are not represented as official or leaked
               admissions questions. Use a quiet space and answer from your own experience.
             </p>
-            <label htmlFor="interview-program" className="mb-2 mt-6 block text-sm font-medium text-cream">
+            <label htmlFor="interview-program" className="label mt-6">
               Choose a program area
             </label>
             <select
               id="interview-program"
               value={programCode}
               onChange={(event) => setProgramCode(event.target.value)}
-              className="min-h-12 w-full rounded-xl border border-line bg-panel px-3 text-sm text-cream"
+              className="input"
             >
               {SIMULATOR_PROGRAMS.map((program) => (
-                <option key={program.code} value={program.code}>{program.label}</option>
+                <option key={program.code} value={program.code}>
+                  {program.label}
+                </option>
               ))}
             </select>
-            <button
-              onClick={beginInterview}
-              disabled={authLoading}
-              className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-semibold text-ink transition hover:bg-accent-soft disabled:opacity-60"
-            >
+            <button onClick={beginInterview} disabled={authLoading} className="btn-primary mt-5 w-full">
               {authLoading ? 'Checking your account…' : 'Start mock interview'}
               {!authLoading && <ArrowRight className="h-4 w-4" />}
             </button>
             <p className="mt-3 text-xs leading-5 text-muted">
-              A microphone is optional. Speech recognition availability depends on your browser.
+              The microphone is optional. Speech recognition runs in your browser and may send
+              audio to its own recognition service.
             </p>
           </div>
         )}
 
         {phase === 'loading' && (
           <div className="py-16 text-center" role="status">
-            <p className="text-sm font-medium text-cream">Preparing your questions…</p>
+            <p className="text-base font-medium text-cream">Preparing your questions…</p>
             <p className="mt-2 text-sm text-muted">This can take a few seconds.</p>
           </div>
         )}
 
         {phase === 'answering' && currentQuestion && (
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="eyebrow">Question {questionIndex + 1} of {questions.length}</p>
-            </div>
-            <h2 className="mt-5 text-2xl font-medium leading-snug text-cream sm:text-3xl">
+            <p className="eyebrow">
+              Question {questionIndex + 1} of {questions.length}
+            </p>
+            <h2 className="mt-4 text-2xl font-medium leading-snug text-cream sm:text-3xl">
               {currentQuestion}
             </h2>
+
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <button
                 onClick={recording ? stopRecording : startRecording}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
-                  recording
-                    ? 'bg-mortuum text-cream hover:opacity-90'
-                    : 'bg-accent px-4 text-ink hover:bg-accent-soft'
-                }`}
+                className={recording ? 'btn-ghost border-rose/50 text-rose' : 'btn-primary'}
               >
                 {recording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 {recording ? 'Stop speaking' : 'Answer by voice'}
               </button>
-              <span className="text-xs text-muted">
+              <span className="text-xs leading-5 text-muted">
                 {recording
                   ? 'Listening… select stop when you are finished.'
-                  : 'Optional; your browser may send speech to its own recognition service. Or type below.'}
+                  : 'Optional. Your browser may send speech to its own recognition service.'}
               </span>
             </div>
-            <label htmlFor="interview-answer" className="mb-2 mt-5 block text-sm font-medium text-cream">
+
+            <label htmlFor="interview-answer" className="label mt-6">
               Your response
             </label>
             <textarea
@@ -283,17 +351,23 @@ export default function MockInterview() {
                 setAnswer(event.target.value);
                 finalTranscriptRef.current = event.target.value;
               }}
-              maxLength={6000}
+              maxLength={MAX_CHARS}
               rows={7}
               placeholder="Use a specific example. Explain what you did, why it mattered, and what you learned."
-              className="w-full resize-y rounded-xl border border-line bg-ink px-4 py-3 text-sm leading-6 text-cream placeholder:text-muted/80"
+              className="input min-h-[180px] resize-y leading-6"
             />
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-muted">{answer.trim().split(/\s+/).filter(Boolean).length} words</p>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className={overLimit ? 'font-medium text-rose' : 'text-muted'}>
+                {words} / {MAX_WORDS} words
+              </span>
+              {overLimit && <span className="text-rose">Over the limit — trim before continuing.</span>}
+            </div>
+
+            <div className="mt-4 flex justify-end">
               <button
                 onClick={advance}
                 disabled={recording}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-5 text-sm font-semibold text-ink transition hover:bg-accent-soft disabled:opacity-50"
+                className="btn-primary"
               >
                 {questionIndex === questions.length - 1 ? 'Finish and review' : 'Next question'}
                 <ArrowRight className="h-4 w-4" />
@@ -304,7 +378,7 @@ export default function MockInterview() {
 
         {phase === 'analyzing' && (
           <div className="py-16 text-center" role="status">
-            <p className="text-sm font-medium text-cream">Reviewing your responses…</p>
+            <p className="text-base font-medium text-cream">Reviewing your responses…</p>
             <p className="mt-2 text-sm text-muted">Your transcript is being assessed against clear practice criteria.</p>
           </div>
         )}
@@ -316,34 +390,33 @@ export default function MockInterview() {
                 <p className="eyebrow">Interview review</p>
                 <h2 className="mt-2 text-2xl font-medium text-cream">A clear next step</h2>
               </div>
-              <div className="rounded-2xl bg-accent-deep px-5 py-3 text-center">
-                <p className="text-2xl font-semibold text-accent">{review.overallScore}</p>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-accent">Practice score</p>
+              <div className="rounded-xl bg-accent-deep px-5 py-3 text-center">
+                <p className="font-display text-2xl font-semibold text-accent">{review.overallScore}</p>
+                <p className="text-xs text-muted">Practice score</p>
               </div>
             </div>
-            <p className="mt-5 text-sm leading-6 text-cream">{review.overallAssessment}</p>
+            <p className="mt-5 text-base leading-7 text-cream">{review.overallAssessment}</p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {review.dimensions.map((dimension) => (
-                <article key={dimension.name} className="rounded-xl border border-line p-4">
+                <article key={dimension.name} className="rounded-lg border border-line bg-ink/50 p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-base font-medium text-cream">{dimension.name}</h3>
-                    <span className="text-sm font-semibold text-accent">{dimension.score}</span>
+                    <h3 className="text-sm font-semibold text-cream">{dimension.name}</h3>
+                    <span className="font-mono text-sm font-semibold text-accent">{dimension.score}</span>
                   </div>
-                  <p className="mt-3 text-sm leading-5 text-muted">{dimension.evidence}</p>
-                  <p className="mt-2 text-sm leading-5 text-cream">{dimension.coaching}</p>
+                  <p className="mt-3 text-sm leading-6 text-muted">{dimension.evidence}</p>
+                  <p className="mt-2 text-sm leading-6 text-cream">{dimension.coaching}</p>
                 </article>
               ))}
             </div>
-            <div className="mt-6 rounded-xl bg-ink p-5">
-              <h3 className="text-base font-medium text-cream">For your next attempt</h3>
-              <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-5 text-muted">
-                {review.nextSteps.map((step, index) => <li key={index}>{step}</li>)}
+            <div className="mt-6 rounded-lg bg-ink p-5">
+              <h3 className="text-sm font-semibold text-cream">For your next attempt</h3>
+              <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-muted">
+                {review.nextSteps.map((step, index) => (
+                  <li key={index}>{step}</li>
+                ))}
               </ol>
             </div>
-            <button
-              onClick={reset}
-              className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-4 text-sm font-semibold text-cream transition hover:bg-ink"
-            >
+            <button onClick={reset} className="btn-ghost mt-6">
               <RotateCcw className="h-4 w-4" /> Start another round
             </button>
           </div>
@@ -352,7 +425,7 @@ export default function MockInterview() {
         {error && (
           <div
             role="alert"
-            className="mt-5 rounded-xl border border-rose/30 bg-rose/10 px-4 py-3 text-sm text-rose"
+            className="mt-5 rounded-lg border border-rose/40 bg-rose/10 px-4 py-3 text-sm text-rose"
           >
             {error}
           </div>
@@ -361,9 +434,9 @@ export default function MockInterview() {
 
       <p className="mx-auto flex max-w-4xl items-start gap-2 text-xs leading-5 text-muted">
         <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-        Feedback is a practice aid, not an admissions decision. Speech recognition is provided
-        by your browser platform and may use its own service; only your transcript is sent to
-        Accepted for review.
+        Feedback is a practice aid, not an admissions decision. Speech recognition is provided by
+        your browser platform and may use its own service; only your transcript is sent to Accepted
+        for review.
       </p>
     </div>
   );

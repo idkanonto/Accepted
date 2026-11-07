@@ -1,7 +1,9 @@
 import { getSupabaseAdmin } from '@/lib/supabase/server';
 import { generateJSON, getPersona } from '@/lib/ai';
 
-const DAILY_CAP = Number(process.env.GEMINI_DAILY_CAP || 250);
+const DAILY_CAP = Number(process.env.GROQ_DAILY_CAP || 250);
+/** One student's share of the global daily pool: cap / expected daily students. */
+export const USER_DAILY_CAP = Math.max(8, Math.floor(DAILY_CAP / 25));
 const MAX_ATTEMPTS = 5;
 const MAX_DRAIN_MS = 8000;
 const SPACE_BETWEEN_CALLS_MS = 100;
@@ -16,9 +18,10 @@ const SCHEMA = {
     rewrite: { type: 'STRING', description: 'At most 120 words.' },
   },
   required: ['score', 'verdict', 'strengths', 'fixes', 'rewrite'],
+  additionalProperties: false,
 };
 
-type Job = {
+export type Job = {
   id: string;
   user_id: string;
   question: string;
@@ -28,29 +31,71 @@ type Job = {
   attempts: number;
 };
 
-const RATE_LIMIT = /429|503|RESOURCE_EXHAUSTED|UNAVAILABLE|overload|rate.?limit|too many/i;
-const BAD_JSON = /INVALID_JSON|unterminated|unexpected end|JSON/i;
+export type FeedbackResult = {
+  score: number;
+  verdict: string;
+  strengths: string[];
+  fixes: string[];
+  rewrite: string;
+};
+
+const RATE_LIMIT = /GROQ_429|GROQ_408|overload|rate.?limit|too many|resource/i;
+const BAD_JSON = /INVALID_JSON|GROQ_EMPTY_RESPONSE|unterminated|unexpected end|JSON/i;
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
 export async function dailyUsage(): Promise<number> {
-  const { data, error } = await getSupabaseAdmin().rpc('daily_usage_count');
-  if (error) throw new Error(`Could not read the daily evaluation limit: ${error.message}`);
-  return typeof data === 'number' ? data : 0;
+  const data = await getSupabaseAdmin().rpc('daily_usage_count');
+  if (data.error) throw new Error(`Could not read the daily evaluation limit: ${data.error.message}`);
+  return typeof data.data === 'number' ? data.data : 0;
+}
+
+/** Evaluations this user completed since 00:00 UTC — the per-student quota. */
+export async function userDailyUsage(userId: string): Promise<number> {
+  const start = `${new Date().toISOString().slice(0, 10)}T00:00:00Z`;
+  const { count, error } = await getSupabaseAdmin()
+    .from('feedback_jobs')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'done')
+    .gte('processed_at', start);
+  if (error) throw new Error(`Could not read your daily limit: ${error.message}`);
+  return count ?? 0;
 }
 
 export async function queuedCount(): Promise<number> {
-  const { data, error } = await getSupabaseAdmin().rpc('queued_count');
-  if (error) throw new Error(`Could not read the queue length: ${error.message}`);
-  return typeof data === 'number' ? data : 0;
+  const data = await getSupabaseAdmin().rpc('queued_count');
+  if (data.error) throw new Error(`Could not read the queue length: ${data.error.message}`);
+  return typeof data.data === 'number' ? data.data : 0;
+}
+
+/** One Groq evaluation. Throws on a malformed or rejected response. */
+export async function evaluateAnswer(job: Job): Promise<FeedbackResult> {
+  const result = await generateJSON<FeedbackResult>(buildPrompt(job), SCHEMA, 1200);
+  if (
+    !Number.isFinite(result.score) ||
+    typeof result.verdict !== 'string' ||
+    !Array.isArray(result.strengths) ||
+    !Array.isArray(result.fixes) ||
+    typeof result.rewrite !== 'string'
+  ) {
+    throw new Error('INVALID_JSON: evaluation did not match the expected feedback format');
+  }
+  return {
+    score: Math.max(0, Math.min(100, Math.round(result.score))),
+    verdict: result.verdict.slice(0, 3000),
+    strengths: result.strengths.filter((item): item is string => typeof item === 'string').slice(0, 5),
+    fixes: result.fixes.filter((item): item is string => typeof item === 'string').slice(0, 5),
+    rewrite: result.rewrite.slice(0, 8000),
+  };
 }
 
 /**
- * Drain the queue: claim up to a few queued jobs, call Gemini for each, and
- * write the result back. Bounded by MAX_DRAIN_MS so a request never hangs.
- * Safe to call concurrently — jobs are claimed with FOR UPDATE SKIP LOCKED.
+ * Drain the queue: claim up to a few queued jobs, score each, and write the
+ * result back. Bounded by MAX_DRAIN_MS so a request never hangs. Safe to call
+ * concurrently — jobs are claimed with FOR UPDATE SKIP LOCKED.
  */
 export async function drainQueue(): Promise<{ processed: number; capReached: boolean }> {
   const start = Date.now();
@@ -74,30 +119,14 @@ export async function drainQueue(): Promise<{ processed: number; capReached: boo
     processed += 1;
 
     try {
-      const result = await generateJSON<{
-        score: number;
-        verdict: string;
-        strengths: string[];
-        fixes: string[];
-        rewrite: string;
-      }>(buildPrompt(job), SCHEMA, 1200);
-      if (
-        !Number.isFinite(result.score) ||
-        typeof result.verdict !== 'string' ||
-        !Array.isArray(result.strengths) ||
-        !Array.isArray(result.fixes) ||
-        typeof result.rewrite !== 'string'
-      ) {
-        throw new Error('INVALID_JSON: evaluation did not match the expected feedback format');
-      }
-
+      const result = await evaluateAnswer(job);
       const { error: completeError } = await getSupabaseAdmin().rpc('complete_feedback_job', {
         p_job_id: job.id,
-        p_score: Math.max(0, Math.min(100, Math.round(result.score))),
-        p_verdict: result.verdict.slice(0, 3000),
-        p_strengths: JSON.stringify(result.strengths.filter((item) => typeof item === 'string').slice(0, 5)),
-        p_fixes: JSON.stringify(result.fixes.filter((item) => typeof item === 'string').slice(0, 5)),
-        p_rewrite: result.rewrite.slice(0, 8000),
+        p_score: result.score,
+        p_verdict: result.verdict,
+        p_strengths: JSON.stringify(result.strengths),
+        p_fixes: JSON.stringify(result.fixes),
+        p_rewrite: result.rewrite,
       });
       if (completeError) throw new Error(`Could not save evaluation: ${completeError.message}`);
     } catch (e) {
