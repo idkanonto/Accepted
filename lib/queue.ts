@@ -184,5 +184,7 @@ ${job.answer}
 
 Word count: ${job.answer.trim().split(/\s+/).filter(Boolean).length}
 
-Score it 0-100 against the criteria in your instructions. Be strict, specific, and direct. Return the JSON only.`;
+Score it 0-100 against the criteria in your instructions. Be strict, specific and direct.
+Be realistic: an on-topic answer with a real example should not score below the mid-50s, and you
+must never invent a fact the applicant did not state. Return the JSON only.`;
 }
