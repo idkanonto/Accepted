@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Check, Mic, MicOff, RotateCcw } from 'lucide-react';
 import { SIMULATOR_PROGRAMS } from '@/lib/data/prompts';
 import { authFetch } from '@/lib/supabase/client';
+import { trackEvent } from '@/lib/track';
 import { useAuth } from '@/components/auth-provider';
 
 type Phase = 'ready' | 'loading' | 'answering' | 'analyzing' | 'results';
@@ -95,6 +96,7 @@ export default function MockInterview() {
       setQuestionIndex(0);
       setAnswer('');
       setPhase('answering');
+      trackEvent('interview_started', { program: programCode });
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : 'Could not prepare your interview.');
       setPhase('ready');
@@ -124,6 +126,7 @@ export default function MockInterview() {
       .getUserMedia({ audio: true })
       .then((stream) => {
         permissionStreamRef.current = stream;
+        trackEvent('voice_started');
         beginRecognition(new SpeechRecognition());
       })
       .catch(() => {
@@ -185,6 +188,7 @@ export default function MockInterview() {
     };
 
     recognition.onerror = (event) => {
+      trackEvent('voice_error', { error: event.error });
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         stopRecognition('Microphone access was blocked. Allow microphone access or type your answer.');
       } else if (event.error === 'audio-capture') {
@@ -250,6 +254,9 @@ export default function MockInterview() {
     recognitionRef.current?.stop();
     setRecording(false);
     setAnswer(finalTranscriptRef.current.trim());
+    trackEvent('voice_stopped', {
+      words: String(finalTranscriptRef.current.trim().split(/\s+/).filter(Boolean).length),
+    });
   }
 
   async function advance() {
@@ -288,6 +295,7 @@ export default function MockInterview() {
       if (!response.ok) throw new Error(data.error ?? 'Could not review this interview.');
       setReview(data as InterviewReview);
       setPhase('results');
+      trackEvent('interview_completed', { score: String(data.overallScore) });
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : 'Could not review this interview.');
       setPhase('answering');

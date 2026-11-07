@@ -8,6 +8,7 @@ import {
   Target,
 } from 'lucide-react';
 import { SIMULATOR_PROGRAMS } from '@/lib/data/prompts';
+import TrackedLink from '@/components/tracked-link';
 
 const PATHWAYS = [
   {
@@ -68,12 +69,22 @@ export default function Home() {
                 supplemental applications, and practise the parts that take more than one try.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/planner" className="btn-primary">
+                <TrackedLink
+                  href="/planner"
+                  event="hero_cta"
+                  properties={{ cta: 'plan' }}
+                  className="btn-primary"
+                >
                   Build my application plan <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link href="/vault" className="btn-ghost">
+                </TrackedLink>
+                <TrackedLink
+                  href="/vault"
+                  event="hero_cta"
+                  properties={{ cta: 'programs' }}
+                  className="btn-ghost"
+                >
                   Browse programs
-                </Link>
+                </TrackedLink>
               </div>
               <p className="mt-6 text-xs leading-5 text-muted">
                 Independent preparation resource. Always confirm admission requirements and deadlines
@@ -89,9 +100,13 @@ export default function Home() {
                 <span className="chip">2 min response</span>
                 <span className="chip">Scored 0–100</span>
               </div>
-              <Link href="/simulator" className="btn-ghost mt-6 w-full">
+              <TrackedLink
+                href="/simulator"
+                event="sample_prompt_started"
+                className="btn-ghost mt-6 w-full"
+              >
                 Start practising
-              </Link>
+              </TrackedLink>
               <p className="mt-3 text-center text-xs leading-5 text-muted">
                 Representative practice prompt, not an official question.
               </p>
@@ -156,9 +171,14 @@ export default function Home() {
               come from your own experiences and reflection.
             </p>
           </div>
-          <Link href="/simulator" className="btn-primary shrink-0">
+          <TrackedLink
+            href="/simulator"
+            event="bottom_cta"
+            properties={{ cta: 'practice' }}
+            className="btn-primary shrink-0"
+          >
             Choose a practice prompt <Target className="h-4 w-4" />
-          </Link>
+          </TrackedLink>
         </div>
       </section>
     </div>

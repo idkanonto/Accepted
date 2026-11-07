@@ -5,6 +5,7 @@ import { Loader2, MessageSquareWarning, Plus, Trash2 } from 'lucide-react';
 import { UNIVERSITIES } from '@/lib/data/programs';
 import { EC_KEY, type EcLevel } from '@/lib/position';
 import { authFetch } from '@/lib/supabase/client';
+import { trackEvent } from '@/lib/track';
 
 type Ec = { id: string; name: string; role: string; duration: string; hours: string; detail: string };
 type Result = {
@@ -80,6 +81,7 @@ export default function EcRater() {
         return;
       }
       setResult(data);
+      trackEvent('ec_rated', { count: String(ecs.length), level: data.overallLevel });
       try {
         localStorage.setItem(EC_KEY, JSON.stringify({ level: data.overallLevel }));
       } catch {

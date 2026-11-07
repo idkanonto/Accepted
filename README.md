@@ -31,6 +31,8 @@ Stack: **Next.js 15 (Vercel) · Supabase (auth + database) · Groq (AI scoring)*
 - **Program markers** — grade-range bars with your average, plus Long answer and
   Background & ECs tags (derived from each program's listed requirements).
 - **Sign in** — email/password, powered by Supabase Auth.
+- **Analytics** — Vercel Analytics + Speed Insights: page views, web vitals, and custom
+  funnel events with an anonymous per-student visitor id.
 
 ## How scoring stays fast
 
@@ -132,6 +134,29 @@ select cron.schedule(
   $$
 );
 ```
+
+## Analytics
+
+Vercel Analytics and Speed Insights are mounted in `components/analytics.tsx`
+from the root layout. Together they send:
+
+- **Page views** with route, referrer, device, browser and country.
+- **Web vitals** (FCP, LCP, CLS, INP, TTFB) per page via Speed Insights.
+- **Custom events** through `trackEvent()` in `lib/track.ts`. Every event carries
+  an anonymous `visitor` id (a hash of the Supabase user id) so dashboards can
+  build per-student funnels without exposing raw account ids.
+
+Events tracked: `sign_in`, `sign_up`, `sign_out`, `hero_cta`,
+`sample_prompt_started`, `bottom_cta`, `simulation_started`,
+`evaluation_completed`, `evaluation_failed`, `quota_blocked`, `interview_started`,
+`interview_completed`, `voice_started`, `voice_stopped`, `voice_error`,
+`ec_rated`, `program_added`, `program_removed`, `checklist_toggled`,
+`average_set`, `history_tab_viewed`, `history_sort_changed`,
+`history_filter_changed`, `history_searched`, `practice_clicked`,
+`breakdown_requested`, `gate_cta_clicked`, `page_error`.
+
+No configuration is required — Vercel serves the scripts automatically in
+production. In development they log to the console and send nothing.
 
 ## Historical averages
 

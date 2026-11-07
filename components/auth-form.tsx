@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
+import { trackEvent } from '@/lib/track';
 
 export default function AuthForm() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
@@ -20,6 +21,7 @@ export default function AuthForm() {
       if (mode === 'signin') {
         const { error } = await getSupabase().auth.signInWithPassword({ email, password });
         if (error) setError(error.message);
+        else trackEvent('sign_in');
       } else {
         const { data, error } = await getSupabase().auth.signUp({
           email,
@@ -27,8 +29,11 @@ export default function AuthForm() {
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) setError(error.message);
-        else if (!data.session) {
-          setInfo('Account created — check your inbox for a confirmation link.');
+        else {
+          trackEvent('sign_up');
+          if (!data.session) {
+            setInfo('Account created — check your inbox for a confirmation link.');
+          }
         }
       }
     } catch {
