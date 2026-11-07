@@ -266,7 +266,7 @@ export default function Planner() {
                           </div>
                         </div>
 
-                        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                           <RangeBar label={program.avg} average={average} />
                           <ProgramTags req={program.req} />
                         </div>

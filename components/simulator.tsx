@@ -53,6 +53,19 @@ type Feedback = {
 
 type Quota = { used: number; limit: number; resetAt: string };
 
+
+function isFeedback(value: unknown): value is Feedback {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const f = value as Record<string, unknown>;
+  return (
+    typeof f.score === 'number' &&
+    typeof f.verdict === 'string' &&
+    Array.isArray(f.strengths) &&
+    Array.isArray(f.fixes) &&
+    typeof f.rewrite === 'string'
+  );
+}
+
 function toFeedback(data: {
   score: number;
   verdict: string;
@@ -117,11 +130,21 @@ export default function Simulator() {
           setProgramCode(draft.programCode);
           setFormat(draft.format);
           const restoredPhase = draft.phase as Phase;
-          setPhase(restoredPhase === 'waiting' && !draft.jobId ? 'response' : restoredPhase);
-          setTimeLeft(Math.max(0, Math.floor(draft.timeLeft)));
+          const restoredTime = Math.max(0, Math.floor(draft.timeLeft));
+          const needsTimer = restoredPhase === 'prep' || restoredPhase === 'response';
+          // A draft saved after its timer expired must not submit on its own.
+          if (needsTimer && restoredTime === 0) {
+            setPhase('response');
+            setTimeLeft(FORMATS[draft.format].response);
+          } else {
+            setPhase(restoredPhase === 'waiting' && !draft.jobId ? 'response' : restoredPhase);
+            setTimeLeft(restoredTime);
+          }
           setPrompt(draft.prompt);
           setAnswer(draft.answer);
-          setFeedback(draft.feedback ?? null);
+          const restoredFeedback = isFeedback(draft.feedback) ? draft.feedback : null;
+          setFeedback(restoredFeedback);
+          if (restoredPhase === 'feedback' && !restoredFeedback) setPhase('response');
           setJobId(typeof draft.jobId === 'string' ? draft.jobId : null);
         }
       }
@@ -193,7 +216,11 @@ export default function Simulator() {
         if (!res.ok) {
           if (res.status === 401) {
             setError('Your sign-in expired. Sign in again to continue checking this evaluation.');
+          } else if (res.status === 404) {
+            setError('This evaluation could not be found. Start a new practice attempt.');
           }
+          setJobId(null);
+          setPhase('response');
           return;
         }
         const data = await res.json();

@@ -58,10 +58,14 @@ export default function MockInterview() {
   const recognitionRef = useRef<Recognition | null>(null);
   const finalTranscriptRef = useRef('');
   const shouldRecordRef = useRef(false);
+  const permissionStreamRef = useRef<MediaStream | null>(null);
+  const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       shouldRecordRef.current = false;
+      if (watchdogRef.current) clearTimeout(watchdogRef.current);
+      permissionStreamRef.current?.getTracks().forEach((track) => track.stop());
       recognitionRef.current?.stop();
     };
   }, []);
@@ -114,10 +118,12 @@ export default function MockInterview() {
 
     // Ask for the microphone explicitly. Some browsers never prompt
     // SpeechRecognition on their own, and a denied permission fails silently.
+    // The stream stays open while recognition runs: releasing it immediately
+    // can cut the audio source on some browsers, leaving a silent session.
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
-        stream.getTracks().forEach((track) => track.stop());
+        permissionStreamRef.current = stream;
         beginRecognition(new SpeechRecognition());
       })
       .catch(() => {
@@ -134,7 +140,35 @@ export default function MockInterview() {
     recognition.continuous = true;
     recognition.interimResults = true;
 
+    const stopStream = () => {
+      permissionStreamRef.current?.getTracks().forEach((track) => track.stop());
+      permissionStreamRef.current = null;
+    };
+    const clearWatchdog = () => {
+      if (watchdogRef.current) {
+        clearTimeout(watchdogRef.current);
+        watchdogRef.current = null;
+      }
+    };
+    // Some browsers report "listening" while the speech service returns nothing.
+    const armWatchdog = () => {
+      clearWatchdog();
+      watchdogRef.current = setTimeout(() => {
+        setError(
+          'No speech is coming through yet. Check the microphone is selected and not muted, or type your answer.'
+        );
+      }, 8000);
+    };
+    const stopRecognition = (message: string) => {
+      shouldRecordRef.current = false;
+      clearWatchdog();
+      stopStream();
+      setRecording(false);
+      setError(message);
+    };
+
     recognition.onresult = (event) => {
+      armWatchdog();
       let interim = '';
       let finalized = '';
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
@@ -152,21 +186,23 @@ export default function MockInterview() {
 
     recognition.onerror = (event) => {
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        shouldRecordRef.current = false;
-        setRecording(false);
-        setError('Microphone access was blocked. Allow microphone access or type your answer.');
+        stopRecognition('Microphone access was blocked. Allow microphone access or type your answer.');
       } else if (event.error === 'audio-capture') {
-        shouldRecordRef.current = false;
-        setRecording(false);
-        setError('No microphone was found. Check your device or type your answer.');
+        stopRecognition('No microphone was found. Check your device or type your answer.');
+      } else if (event.error === 'network') {
+        stopRecognition(
+          'The speech recognition service is unreachable. Check your connection or type your answer.'
+        );
       } else if (event.error === 'no-speech') {
         setError('No speech detected. Speak a little louder, or type your answer.');
       }
-      // 'network' and 'aborted' are transient; onend restarts the session.
+      // 'aborted' is transient; onend restarts the session.
     };
 
     recognition.onend = () => {
       if (!shouldRecordRef.current) {
+        clearWatchdog();
+        stopStream();
         setRecording(false);
         recognitionRef.current = null;
         return;
@@ -175,6 +211,8 @@ export default function MockInterview() {
       // still answering; a brief delay avoids an InvalidStateError.
       setTimeout(() => {
         if (!shouldRecordRef.current) {
+          clearWatchdog();
+          stopStream();
           setRecording(false);
           recognitionRef.current = null;
           return;
@@ -183,20 +221,22 @@ export default function MockInterview() {
           setError(null);
           recognition.start();
         } catch {
-          shouldRecordRef.current = false;
-          setRecording(false);
-          recognitionRef.current = null;
-          setError('Speech recognition stopped. Press the microphone to continue, or type your answer.');
+          stopRecognition(
+            'Speech recognition stopped. Press the microphone to continue, or type your answer.'
+          );
         }
       }, 120);
     };
 
     recognitionRef.current = recognition;
+    armWatchdog();
     try {
       recognition.start();
       setRecording(true);
     } catch {
       recognitionRef.current = null;
+      clearWatchdog();
+      stopStream();
       shouldRecordRef.current = false;
       setError('Could not start speech recognition. Check microphone permissions or type your answer.');
     }
@@ -204,6 +244,9 @@ export default function MockInterview() {
 
   function stopRecording() {
     shouldRecordRef.current = false;
+    if (watchdogRef.current) clearTimeout(watchdogRef.current);
+    permissionStreamRef.current?.getTracks().forEach((track) => track.stop());
+    permissionStreamRef.current = null;
     recognitionRef.current?.stop();
     setRecording(false);
     setAnswer(finalTranscriptRef.current.trim());
