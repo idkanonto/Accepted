@@ -35,10 +35,12 @@ type StoredDraft = {
 };
 
 const DRAFT_KEY = 'accepted-simulator-draft';
+const MAX_WORDS = 500;
+const MAX_CHARS = 4000;
 
 const FORMATS: Record<Format, { label: string; prep: number; response: number }> = {
-  video: { label: 'Video Response (30s prep / 2 min record)', prep: 30, response: 120 },
-  written: { label: 'Written Reflection / AIF Essay (60s prep / 10 min write)', prep: 60, response: 600 },
+  written: { label: 'Written essay / AIF (60s prep / 10 min write)', prep: 60, response: 600 },
+  video: { label: 'Video response (30s prep / 2 min speak)', prep: 30, response: 120 },
 };
 
 type Feedback = {
@@ -49,18 +51,37 @@ type Feedback = {
   rewrite: string;
 };
 
+type Quota = { used: number; limit: number; resetAt: string };
+
+function toFeedback(data: {
+  score: number;
+  verdict: string;
+  strengths: string[] | null;
+  fixes: string[] | null;
+  rewrite: string;
+}): Feedback {
+  return {
+    score: data.score,
+    verdict: data.verdict,
+    strengths: data.strengths ?? [],
+    fixes: data.fixes ?? [],
+    rewrite: data.rewrite,
+  };
+}
+
 export default function Simulator() {
   const params = useSearchParams();
   const { user, loading: authLoading, openAuth } = useAuth();
 
   const [programCode, setProgramCode] = useState<string>('queens_comm');
-  const [format, setFormat] = useState<Format>('video');
+  const [format, setFormat] = useState<Format>('written');
   const [phase, setPhase] = useState<Phase>('idle');
   const [timeLeft, setTimeLeft] = useState(0);
   const [prompt, setPrompt] = useState('');
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [quota, setQuota] = useState<Quota | null>(null);
 
   const [jobId, setJobId] = useState<string | null>(null);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
@@ -80,8 +101,8 @@ export default function Simulator() {
     const owner = user?.id ?? 'guest';
     const key = `${DRAFT_KEY}:${owner}`;
     try {
-      const stored = localStorage.getItem(key) ??
-        (user ? localStorage.getItem(`${DRAFT_KEY}:guest`) : null);
+      const stored =
+        localStorage.getItem(key) ?? (user ? localStorage.getItem(`${DRAFT_KEY}:guest`) : null);
       if (stored) {
         const draft = JSON.parse(stored) as Partial<StoredDraft>;
         if (
@@ -91,9 +112,7 @@ export default function Simulator() {
           typeof draft.prompt === 'string' &&
           typeof draft.answer === 'string' &&
           typeof draft.timeLeft === 'number' &&
-          ['idle', 'prep', 'response', 'waiting', 'feedback', 'done'].includes(
-            draft.phase ?? ''
-          )
+          ['idle', 'prep', 'response', 'waiting', 'feedback', 'done'].includes(draft.phase ?? '')
         ) {
           setProgramCode(draft.programCode);
           setFormat(draft.format);
@@ -162,7 +181,7 @@ export default function Simulator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, phase, format]);
 
-  // Poll the queue until Nova finishes
+  // Poll the queue only when a job was left in the background (recovery path).
   useEffect(() => {
     if (!jobId) return;
     let stopped = false;
@@ -184,13 +203,7 @@ export default function Simulator() {
         setCapReached(Boolean(data.capReached));
 
         if (data.status === 'done') {
-          setFeedback({
-            score: data.score,
-            verdict: data.verdict,
-            strengths: data.strengths ?? [],
-            fixes: data.fixes ?? [],
-            rewrite: data.rewrite,
-          });
+          setFeedback(toFeedback(data));
           setPhase('feedback');
           setJobId(null);
           return;
@@ -220,6 +233,7 @@ export default function Simulator() {
     setAnswer('');
     setFeedback(null);
     setError(null);
+    setQuota(null);
     setJobId(null);
     setQueuePosition(null);
     setCapReached(false);
@@ -232,7 +246,8 @@ export default function Simulator() {
       setPhase('response');
       setTimeLeft(FORMATS[format].response);
     } else if (phase === 'response') {
-      submit();
+      if (format === 'video') setPhase('done');
+      else submit();
     }
   }
 
@@ -249,6 +264,10 @@ export default function Simulator() {
   async function submit() {
     if (answer.trim().length < 20) {
       setError('Write at least a sentence or two before asking for a score.');
+      return;
+    }
+    if (words > MAX_WORDS || answer.length > MAX_CHARS) {
+      setError(`Keep the answer under ${MAX_WORDS} words so it stays focused and fits the real format.`);
       return;
     }
     if (authLoading) return;
@@ -272,11 +291,18 @@ export default function Simulator() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? 'Could not queue your answer.');
+        setError(data.error ?? 'Could not score your answer.');
         setPhase('response');
         return;
       }
-      setQueuePosition(typeof data.queued === 'number' ? data.queued : null);
+      // The answer is scored in the same request; render it immediately.
+      if (data.status === 'done') {
+        setFeedback(toFeedback(data));
+        setQuota(data.quota ?? null);
+        setPhase('feedback');
+        return;
+      }
+      setQueuePosition(typeof data.position === 'number' ? data.position : null);
       setJobId(data.id);
     } catch {
       setError('Network error. Check your connection and try again.');
@@ -290,6 +316,7 @@ export default function Simulator() {
     setAnswer('');
     setFeedback(null);
     setError(null);
+    setQuota(null);
     setJobId(null);
     setQueuePosition(null);
     setTimeLeft(0);
@@ -298,22 +325,26 @@ export default function Simulator() {
   const mins = String(Math.floor(Math.max(timeLeft, 0) / 60)).padStart(2, '0');
   const secs = String(Math.max(timeLeft, 0) % 60).padStart(2, '0');
   const words = answer.trim() ? answer.trim().split(/\s+/).length : 0;
+  const overLimit = words > MAX_WORDS || answer.length > MAX_CHARS;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
+    <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
       {/* Configuration */}
-      <aside className="panel h-fit space-y-4 p-5">
-        <h2 className="text-lg font-semibold text-cream">Configuration</h2>
+      <aside className="panel h-fit space-y-5 p-5">
+        <div>
+          <p className="eyebrow">Practice setup</p>
+          <h2 className="mt-2 text-xl font-medium text-cream">Configuration</h2>
+        </div>
 
         <div>
-          <label htmlFor="sim-program" className="mb-1 block text-xs font-medium text-muted">
-            Select Target University &amp; Program
+          <label htmlFor="sim-program" className="label">
+            Target university &amp; program
           </label>
           <select
             id="sim-program"
             value={programCode}
             onChange={(e) => setProgramCode(e.target.value)}
-            className="w-full rounded-lg border border-line bg-ink p-2.5 text-sm text-cream outline-none focus:border-accent"
+            className="input"
           >
             {PROGRAM_GROUPS.map((group) => (
               <optgroup key={group} label={group}>
@@ -328,14 +359,14 @@ export default function Simulator() {
         </div>
 
         <div>
-          <label htmlFor="sim-type" className="mb-1 block text-xs font-medium text-muted">
-            Question Format
+          <label htmlFor="sim-type" className="label">
+            Question format
           </label>
           <select
             id="sim-type"
             value={format}
             onChange={(e) => setFormat(e.target.value as Format)}
-            className="w-full rounded-lg border border-line bg-ink p-2.5 text-sm text-cream outline-none focus:border-accent"
+            className="input"
           >
             {(Object.keys(FORMATS) as Format[]).map((f) => (
               <option key={f} value={f}>
@@ -345,59 +376,54 @@ export default function Simulator() {
           </select>
         </div>
 
-        <button
-          onClick={startSimulation}
-          className="w-full rounded-lg bg-accent py-2.5 text-sm font-medium text-ink shadow-lg shadow-accent/20 transition hover:bg-accent-soft"
-        >
-          Start Timed Simulation
+        <button onClick={startSimulation} className="btn-primary w-full">
+          Start timed simulation
         </button>
 
-        <p className="text-xs leading-relaxed text-muted">
+        <p className="text-xs leading-5 text-muted">
           {user
-            ? `Signed in as ${user.email} — your draft is saved on this device, and scored answers are saved to your account.`
-            : 'Your draft is saved on this device. Sign in with email to submit for scoring and save results to your account.'}
+            ? `Signed in as ${user.email}. Scored answers are saved to your account.`
+            : 'Your draft is saved on this device. Sign in to submit for scoring.'}
         </p>
       </aside>
 
       {/* Active area */}
-      <section className="panel flex min-h-[460px] flex-col p-6 lg:col-span-2">
+      <section className="panel flex min-h-[480px] flex-col p-6">
         {phase === 'idle' && (
           <div className="my-auto space-y-3 text-center">
-            <GraduationCap className="mx-auto h-10 w-10 text-accent-soft" />
-            <h3 className="text-lg font-medium text-cream">Choose your program &amp; format</h3>
-            <p className="mx-auto max-w-md text-sm text-muted">
-              Work through representative questions with strict prep and response
-              timers. Confirm current application details with your chosen program.
+            <GraduationCap className="mx-auto h-10 w-10 text-accent" />
+            <h3 className="text-xl font-medium text-cream">Choose a program and format</h3>
+            <p className="mx-auto max-w-md text-sm leading-6 text-muted">
+              Work through representative questions with strict prep and response timers.
+              Confirm current application details with your chosen program.
             </p>
           </div>
         )}
 
         {(phase === 'prep' || phase === 'response') && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-line pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
               <span
                 className={`rounded-full border px-3 py-1 text-xs font-medium ${
                   phase === 'prep'
-                    ? 'border-gold/30 bg-gold/10 text-gold'
-                    : 'border-rose/30 bg-rose/10 text-rose'
+                    ? 'border-accent/40 bg-accent/10 text-accent'
+                    : 'border-rose/40 bg-rose/10 text-rose'
                 }`}
               >
                 {phase === 'prep'
-                  ? 'Preparation Time'
+                  ? 'Preparation time'
                   : format === 'written'
-                    ? 'Writing Window'
-                      : 'Response Time'}
+                    ? 'Writing window'
+                    : 'Response time'}
               </span>
-              <div className="font-mono text-2xl font-bold text-cream">
+              <div className="font-mono text-2xl font-semibold tabular-nums text-cream">
                 {mins}:{secs}
               </div>
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-accent-soft">
-                Practice Prompt
-              </span>
-              <div className="rounded-xl border border-line bg-ink p-4 text-lg font-medium text-cream">
+              <p className="eyebrow">Practice prompt</p>
+              <div className="rounded-lg border border-line bg-ink p-4 text-base leading-7 text-cream">
                 {prompt}
               </div>
               <p className="text-xs text-muted">
@@ -411,21 +437,25 @@ export default function Simulator() {
                   <textarea
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
-                    rows={6}
+                    rows={7}
                     placeholder="Type your response here under the real time limit…"
-                    className="w-full resize-y rounded-xl border border-line bg-ink p-3 text-sm text-cream outline-none focus:border-accent"
+                    className="input min-h-[180px] resize-y leading-6"
                   />
-                  <div className="flex items-center justify-between text-xs text-muted">
-                    <span>{words} words</span>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className={overLimit ? 'font-medium text-rose' : 'text-muted'}>
+                      {words} / {MAX_WORDS} words
+                    </span>
+                    {overLimit && (
+                      <span className="text-rose">Over the limit — trim before submitting.</span>
+                    )}
                   </div>
                 </>
               ) : (
-                <div className="space-y-2 rounded-xl border border-line bg-ink p-8 text-center">
-                  <Video className="mx-auto h-8 w-8 animate-pulse text-accent-soft" />
-                  <p className="text-sm text-muted">
-                    Use this response window to practise aloud. This timer does not
-                    record video or audio; use Mock Interview for voice transcription
-                    and feedback.
+                <div className="space-y-3 rounded-lg border border-line bg-ink p-8 text-center">
+                  <Video className="mx-auto h-8 w-8 animate-pulse text-accent" />
+                  <p className="mx-auto max-w-md text-sm leading-6 text-muted">
+                    Use this window to practise aloud. This timer does not record audio. For
+                    transcription and scored feedback, use the mock interview.
                   </p>
                 </div>
               )}
@@ -439,21 +469,15 @@ export default function Simulator() {
             )}
 
             <div className="flex justify-end gap-3">
-              <button
-                onClick={reset}
-                className="rounded-lg bg-panel-2 px-4 py-2 text-sm text-muted transition hover:text-cream"
-              >
+              <button onClick={reset} className="btn-ghost">
                 Abort
               </button>
-              <button
-                onClick={progressSimulation}
-                className="rounded-lg bg-accent px-5 py-2 text-sm font-medium text-ink transition hover:bg-accent-soft"
-              >
+              <button onClick={progressSimulation} className="btn-primary">
                 {phase === 'prep'
-                  ? 'Skip Prep / Start Response Now'
+                  ? 'Skip prep / start now'
                   : format === 'written'
-                    ? 'Finish & Submit'
-                    : 'Finish & Submit'}
+                    ? 'Finish & submit'
+                    : 'Finish'}
               </button>
             </div>
           </div>
@@ -461,16 +485,14 @@ export default function Simulator() {
 
         {phase === 'waiting' && (
           <div className="my-auto space-y-4 text-center">
-            <Loader2 className="mx-auto h-10 w-10 animate-spin text-accent-soft" />
-            <h3 className="text-lg font-medium text-cream">
-              {queuePosition === null
-                ? 'Queued for scoring…'
-                : `Queued — position #${queuePosition}`}
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-accent" />
+            <h3 className="text-xl font-medium text-cream">
+              {queuePosition === null ? 'Scoring your answer…' : `Queued — position #${queuePosition}`}
             </h3>
-            <p className="mx-auto max-w-md text-sm text-muted">
+            <p className="mx-auto max-w-md text-sm leading-6 text-muted">
               {capReached
-                ? 'Today’s free scoring limit is reached. Your answer stays in the queue and will be scored when the limit resets — or try again tomorrow.'
-                : 'Scoring runs in the background. Your result will appear here when it is ready; you can keep working while it processes.'}
+                ? 'Today’s free scoring limit is reached. Your answer stays in the queue and will be scored when the limit resets.'
+                : 'This usually takes a few seconds. Your result will appear here when it is ready.'}
             </p>
             {error && <p role="status" className="mx-auto max-w-md text-xs text-gold">{error}</p>}
           </div>
@@ -478,15 +500,12 @@ export default function Simulator() {
 
         {phase === 'feedback' && feedback && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <span className="rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-medium text-accent-soft">
-                Nova&apos;s Evaluation
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+                Nova&apos;s evaluation
               </span>
-              <button
-                onClick={reset}
-                className="flex items-center gap-2 rounded-lg bg-panel-2 px-4 py-2 text-sm text-muted transition hover:text-cream"
-              >
-                <RotateCcw className="h-4 w-4" /> Try Another
+              <button onClick={reset} className="btn-ghost">
+                <RotateCcw className="h-4 w-4" /> Try another
               </button>
             </div>
 
@@ -494,9 +513,7 @@ export default function Simulator() {
               <ScoreRing score={feedback.score} />
               <div className="min-w-0 flex-1">
                 <h3 className="eyebrow">Verdict</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-cream">
-                  {feedback.verdict}
-                </p>
+                <p className="mt-2 text-base leading-7 text-cream">{feedback.verdict}</p>
               </div>
             </div>
 
@@ -505,7 +522,7 @@ export default function Simulator() {
                 <h4 className="flex items-center gap-2 text-sm font-semibold text-cream">
                   <Check className="h-4 w-4 text-accent" /> What works
                 </h4>
-                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-cream/90">
+                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-cream/90">
                   {feedback.strengths.map((s, i) => (
                     <li key={i}>{s}</li>
                   ))}
@@ -515,7 +532,7 @@ export default function Simulator() {
                 <h4 className="flex items-center gap-2 text-sm font-semibold text-cream">
                   <ArrowRight className="h-4 w-4 text-gold" /> What to fix
                 </h4>
-                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-cream/90">
+                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-cream/90">
                   {feedback.fixes.map((s, i) => (
                     <li key={i}>{s}</li>
                   ))}
@@ -525,41 +542,45 @@ export default function Simulator() {
 
             <div>
               <h4 className="text-sm font-semibold text-cream">Model rewrite</h4>
-              <p className="mt-3 whitespace-pre-wrap border-l-2 border-accent-soft bg-ink p-4 text-[15px] leading-relaxed text-cream">
+              <p className="mt-3 whitespace-pre-wrap border-l-2 border-accent bg-ink p-4 text-base leading-7 text-cream">
                 {feedback.rewrite}
               </p>
             </div>
 
-            <div className="flex items-center justify-between border-t border-line pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
               <Link
                 href="/analytics"
-                className="flex items-center gap-2 text-sm font-semibold text-accent-soft hover:underline"
+                className="flex items-center gap-2 text-sm font-semibold text-accent hover:underline"
               >
                 See it in your analytics <ArrowRight className="h-4 w-4" />
               </Link>
-              <span className="flex items-center gap-1 text-xs text-accent">
-                <Check className="h-3.5 w-3.5" /> Saved to your account
-              </span>
+              <div className="flex items-center gap-3 text-xs text-muted">
+                {quota && (
+                  <span>
+                    {quota.used} of {quota.limit} free evaluations used today
+                  </span>
+                )}
+                <span className="flex items-center gap-1 text-accent">
+                  <Check className="h-3.5 w-3.5" /> Saved to your account
+                </span>
+              </div>
             </div>
           </div>
         )}
 
         {phase === 'done' && (
           <div className="my-auto space-y-4 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-accent/30 bg-accent/10 text-xl text-accent">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-xl text-accent">
               <Check className="h-6 w-6" />
             </div>
-            <h3 className="text-xl font-bold text-cream">Simulation Completed!</h3>
-            <p className="mx-auto max-w-md text-sm text-muted">
-              Great discipline. Review your delivery and practice another prompt.
-              Written answers get scored by Nova.
+            <h3 className="text-2xl font-medium text-cream">Simulation completed</h3>
+            <p className="mx-auto max-w-md text-sm leading-6 text-muted">
+              Written answers are scored by Nova. For spoken answers with transcription and
+              feedback, use the mock interview.
             </p>
             <div className="flex justify-center gap-3 pt-4">
-              <button
-                onClick={reset}
-                className="flex items-center gap-2 rounded-lg bg-panel-2 px-4 py-2 text-sm text-muted transition hover:text-cream"
-              >
-                <RotateCcw className="h-4 w-4" /> Try Another
+              <button onClick={reset} className="btn-ghost">
+                <RotateCcw className="h-4 w-4" /> Try another
               </button>
             </div>
           </div>

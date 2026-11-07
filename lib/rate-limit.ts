@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabase/server';
 
-/** Hourly per-user limit shared by the Gemini breakdown, interview and EC routes. */
+/** Hourly per-user limit shared by the Nova breakdown, interview and EC routes. */
 export async function consumeRateLimit(userId: string, limit = 20): Promise<boolean> {
   const supabase = getSupabaseAdmin();
   const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();

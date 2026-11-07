@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
-import { Lora, Inter, JetBrains_Mono } from 'next/font/google';
+import { Fraunces, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/components/auth-provider';
 import Nav from '@/components/nav';
 import Footer from '@/components/footer';
 
-const lora = Lora({
+const fraunces = Fraunces({
   subsets: ['latin'],
-  variable: '--font-lora',
+  variable: '--font-fraunces',
   display: 'swap',
 });
 
@@ -36,7 +36,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${lora.variable} ${inter.variable} ${jbMono.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${jbMono.variable}`}>
       <body className="flex min-h-screen flex-col">
         <AuthProvider>
           <Nav />

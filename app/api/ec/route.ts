@@ -35,6 +35,7 @@ const SCHEMA = {
     gaps: { type: 'ARRAY', items: { type: 'STRING' }, description: 'At most three short gaps.' },
   },
   required: ['summary', 'overallLevel', 'ranked', 'gaps'],
+  additionalProperties: false,
 };
 
 type Ec = { name: string; role: string; duration: string; hours: number; detail: string };

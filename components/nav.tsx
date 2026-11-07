@@ -24,7 +24,7 @@ export default function Nav() {
 
   const linkClass = (href: string) =>
     `rounded-lg px-3 py-2 text-sm font-medium transition ${
-      pathname === href ? 'bg-accent-deep text-cream' : 'text-muted hover:text-cream'
+      pathname === href ? 'bg-panel-2 text-cream' : 'text-muted hover:text-cream'
     }`;
 
   const account = loading ? null : user ? (
@@ -35,10 +35,7 @@ export default function Nav() {
       <LogOut className="h-4 w-4" /> Sign out
     </button>
   ) : (
-    <button
-      onClick={openAuth}
-      className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink transition hover:bg-accent-soft"
-    >
+    <button onClick={openAuth} className="btn-primary px-4 py-2">
       Sign in
     </button>
   );
@@ -46,13 +43,23 @@ export default function Nav() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-ink/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="font-display text-xl font-semibold tracking-tight text-accent">
-          Accepted
+        <Link href="/" className="flex items-baseline gap-1.5">
+          <span className="font-display text-xl font-semibold tracking-tight text-accent">
+            Accepted!
+          </span>
+          <span className="rounded border border-accent/40 px-1 text-[10px] font-semibold tracking-wider text-accent">
+            ON
+          </span>
         </Link>
 
         <nav aria-label="Main navigation" className="hidden items-center gap-1 md:flex">
           {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} aria-current={pathname === l.href ? 'page' : undefined} className={linkClass(l.href)}>
+            <Link
+              key={l.href}
+              href={l.href}
+              aria-current={pathname === l.href ? 'page' : undefined}
+              className={linkClass(l.href)}
+            >
               {l.label}
             </Link>
           ))}
@@ -71,9 +78,17 @@ export default function Nav() {
       </div>
 
       {open && (
-        <nav aria-label="Mobile navigation" className="flex flex-col gap-1 border-t border-line px-4 py-3 md:hidden">
+        <nav
+          aria-label="Mobile navigation"
+          className="flex flex-col gap-1 border-t border-line px-4 py-3 md:hidden"
+        >
           {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} aria-current={pathname === l.href ? 'page' : undefined} className={linkClass(l.href)}>
+            <Link
+              key={l.href}
+              href={l.href}
+              aria-current={pathname === l.href ? 'page' : undefined}
+              className={linkClass(l.href)}
+            >
               {l.label}
             </Link>
           ))}

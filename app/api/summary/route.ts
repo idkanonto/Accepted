@@ -31,6 +31,7 @@ const SCHEMA = {
     },
   },
   required: ['summary', 'strengths', 'focusAreas', 'actions'],
+  additionalProperties: false,
 };
 
 export async function POST(req: Request) {
