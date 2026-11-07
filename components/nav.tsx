@@ -11,6 +11,7 @@ const LINKS = [
   { href: '/vault', label: 'Programs' },
   { href: '/simulator', label: 'Practice' },
   { href: '/interview', label: 'Interview' },
+  { href: '/ec-rater', label: 'ECs' },
   { href: '/analytics', label: 'Progress' },
 ];
 

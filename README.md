@@ -24,6 +24,8 @@ Stack: **Next.js 15 (Vercel) · Supabase (auth + database) · Gemini (AI scoring
   fixes, and a model rewrite.
 - **Nova Analytics** — attempts are saved to your account: scores by program, an
   8-week trend, recent attempts, and an AI breakdown of where to focus next.
+- **EC Rater** — rank up to 8 activities, get advice on making each one count, and see how your ECs fit each program in the Planner and Programs.
+- **Program markers** — grade-range bars with your average, plus Long answer and Background & ECs tags (derived from each program's listed requirements).
 - **Sign in** — email/password, powered by Supabase Auth.
 
 ## How scoring stays fast and unblocked
