@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
-import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google';
+import { Lora, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/components/auth-provider';
 import Nav from '@/components/nav';
 import Footer from '@/components/footer';
 
-const spaceGrotesk = Space_Grotesk({
+const lora = Lora({
   subsets: ['latin'],
-  variable: '--font-space-grotesk',
+  variable: '--font-lora',
   display: 'swap',
 });
 
@@ -29,14 +29,14 @@ export const metadata: Metadata = {
     template: '%s · Accepted!',
   },
   description:
-    'Practice real Ontario university supplemental application prompts under strict timers, browse the program vault, and get scored by Nova — the AI admissions evaluator.',
+    'Plan Ontario university applications, browse supplemental-program references, practise interview and writing prompts, and get direct feedback.',
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable} ${jbMono.variable}`}>
+    <html lang="en" className={`${lora.variable} ${inter.variable} ${jbMono.variable}`}>
       <body className="flex min-h-screen flex-col">
         <AuthProvider>
           <Nav />

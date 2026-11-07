@@ -5,9 +5,9 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Optional queue driver for a scheduler (e.g. Supabase pg_cron) — without it,
- * the queue still drains whenever a student polls for their result.
- * Protect it with CRON_SECRET.
+ * Optional queue driver for a scheduler (e.g. Supabase pg_cron). New
+ * submissions also start a background drain. Protect this endpoint with
+ * CRON_SECRET.
  */
 export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET;

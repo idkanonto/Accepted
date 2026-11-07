@@ -276,8 +276,8 @@ export default function Simulator() {
             <GraduationCap className="mx-auto h-10 w-10 text-accent-soft" />
             <h3 className="text-lg font-medium text-cream">Choose your program &amp; format</h3>
             <p className="mx-auto max-w-md text-sm text-muted">
-              Get authentic prompts from Ontario universities and simulate real exam
-              conditions — strict prep and response timers included.
+              Work through representative questions with strict prep and response
+              timers. Confirm current application details with your chosen program.
             </p>
           </div>
         )}
@@ -296,7 +296,7 @@ export default function Simulator() {
                   ? 'Preparation Time'
                   : format === 'written'
                     ? 'Writing Window'
-                    : 'Recording Live'}
+                      : 'Response Time'}
               </span>
               <div className="font-mono text-2xl font-bold text-cream">
                 {mins}:{secs}
@@ -305,7 +305,7 @@ export default function Simulator() {
 
             <div className="space-y-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-accent-soft">
-                Official Prompt / Question
+                Practice Prompt
               </span>
               <div className="rounded-xl border border-line bg-ink p-4 text-lg font-medium text-cream">
                 {prompt}
@@ -333,8 +333,9 @@ export default function Simulator() {
                 <div className="space-y-2 rounded-xl border border-line bg-ink p-8 text-center">
                   <Video className="mx-auto h-8 w-8 animate-pulse text-accent-soft" />
                   <p className="text-sm text-muted">
-                    Camera feed active. Speak clearly into your microphone when the
-                    recording window begins.
+                    Use this response window to practise aloud. This timer does not
+                    record video or audio; use Mock Interview for voice transcription
+                    and feedback.
                   </p>
                 </div>
               )}
@@ -379,7 +380,7 @@ export default function Simulator() {
             <p className="mx-auto max-w-md text-sm text-muted">
               {capReached
                 ? 'Today’s free scoring limit is reached. Your answer stays in the queue and will be scored when the limit resets — or try again tomorrow.'
-                : 'Nova scores answers in order, a few at a time, so nobody gets rate-limited. This usually takes under a minute. Keep this tab open.'}
+                : 'Scoring runs in the background. Your result will appear here when it is ready; you can keep working while it processes.'}
             </p>
           </div>
         )}

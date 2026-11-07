@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #0f172a;
-  --color-panel: #1e293b;
-  --color-panel-2: #263548;
-  --color-line: #334155;
-  --color-cream: #f8fafc;
-  --color-muted: #94a3b8;
-  --color-accent: #10b981;
-  --color-accent-deep: #059669;
-  --color-accent-soft: #34d399;
-  --color-gold: #f59e0b;
-  --color-rose: #f43f5e;
-  --font-display: var(--font-space-grotesk), "Segoe UI", sans-serif;
+  --color-ink: #f5f5ef;
+  --color-panel: #fffefa;
+  --color-panel-2: #eef1e8;
+  --color-line: #d9e0d3;
+  --color-cream: #202b23;
+  --color-muted: #5d6b60;
+  --color-accent: #456b52;
+  --color-accent-deep: #dce8da;
+  --color-accent-soft: #31563e;
+  --color-gold: #8c6b2e;
+  --color-rose: #a63d42;
+  --font-display: var(--font-lora), Georgia, serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jbmono), ui-monospace, "SFMono-Regular", monospace;
 }
@@ -20,13 +20,14 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    background: var(--color-ink);
   }
   body {
     @apply bg-ink text-cream antialiased;
   }
   ::selection {
-    background: var(--color-accent);
-    color: var(--color-ink);
+    background: #d1dfcd;
+    color: #202b23;
   }
   h1,
   h2,
@@ -34,13 +35,34 @@
     @apply font-display;
     text-wrap: balance;
   }
+  :focus-visible {
+    outline: 3px solid #6f9576;
+    outline-offset: 3px;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-soft;
+    @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-accent;
   }
   .panel {
-    @apply border border-line bg-panel;
+    @apply rounded-2xl border border-line bg-panel shadow-sm;
   }
 }

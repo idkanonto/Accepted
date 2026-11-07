@@ -1,19 +1,23 @@
 # Accepted! — Ontario Supp App Hub
 
-A responsive web app that helps Ontario Grade 12 students practice the
-supplemental application prompts universities actually ask — under real timers —
-and get scored, no-fluff feedback from **Nova**, a Gemini-powered admissions
-evaluator.
+A responsive web app that helps Ontario Grade 12 students plan applications and
+practise representative supplemental prompts under realistic timers, with direct
+feedback from **Nova**, a Gemini-powered writing coach. Practice prompts and
+competitive ranges are planning references, not official or guaranteed data.
 
 Stack: **Next.js 15 (Vercel) · Supabase (auth + database) · Gemini (AI scoring)**.
 
 ## Features
 
 - **Supp App Simulator** — pick a program and format, then practice under strict
-  prep/response timers (video: 30s prep / 2 min record; written: 60s prep / 10 min
-  write).
-- **Program Vault** — every Ontario program requiring a supplemental application,
-  with competitive averages, formats, deadlines, search, and one-click practice.
+  prep/response timers (video-response practice: 30s prep / 2 min; written: 60s
+  prep / 10 min).
+- **Program Vault** — browse Ontario programs with supplemental-application
+  references, competitive averages, formats, deadlines, search, and one-click practice.
+- **OUAC & Chance Planner** — keep a private program shortlist, application
+  checklist, and broad academic-alignment view in your browser.
+- **Voice mock interviews** — practise with spoken questions, browser speech
+  recognition, and a structured Gemini review of the submitted transcript.
 - **Nova AI scoring** — written answers are scored 0–100 with a verdict, strengths,
   fixes, and a model rewrite.
 - **Nova Analytics** — attempts are saved to your account: scores by program, an
@@ -25,22 +29,24 @@ Stack: **Next.js 15 (Vercel) · Supabase (auth + database) · Gemini (AI scoring
 Scoring runs through a queue, never directly from the browser:
 
 1. You submit an answer → a row is inserted into `feedback_jobs` (`queued`).
-2. A server endpoint claims queued jobs one at a time (`FOR UPDATE SKIP LOCKED`),
-   calls Gemini, and writes the result back.
+2. The response returns immediately; Next.js continues queue work in the
+   background. A server endpoint claims queued jobs one at a time
+   (`FOR UPDATE SKIP LOCKED`), calls Gemini, and writes the result back.
 3. A daily counter caps evaluations (default **250/day** — the Gemini Flash free
    tier). When a 429/503 arrives, the job is requeued with exponential backoff.
-4. Your browser polls until the job is `done`, showing your queue position.
+4. Your browser polls the job status without triggering or waiting on scoring.
 
-The queue drains whenever anyone polls, so no background worker is required on
-Vercel's free tier. An optional scheduler endpoint (`POST /api/jobs/drain`,
-protected by `CRON_SECRET`) can also drive it — see below.
+An optional scheduler endpoint (`POST /api/jobs/drain`, protected by
+`CRON_SECRET`) can also drive the queue, including older queued jobs.
 
 ## Setup
 
 ### 1. Supabase — create the schema
 
 Dashboard → **SQL Editor** → New query → paste the contents of
-`supabase/migrations/001_init.sql` → **Run**.
+`supabase/migrations/001_init.sql` → **Run**. For an existing installation,
+also run `supabase/migrations/002_restrict_queue_functions.sql` to remove public
+access to privileged queue functions.
 
 This creates `feedback_jobs`, `daily_usage`, `summary_usage`, Row Level Security
 policies, and the queue functions. Nothing else is required — Supabase Auth is
@@ -88,9 +94,8 @@ npm run dev
 
 ### 5. Optional — scheduled queue draining
 
-Without it, the queue drains whenever a student polls (good enough for most
-days). To also drain on a schedule, enable `pg_cron` + `pg_net` in Supabase and
-point them at your deployed `/api/jobs/drain` endpoint:
+To drain older queued jobs on a schedule, enable `pg_cron` + `pg_net` in Supabase
+and point them at your deployed `/api/jobs/drain` endpoint:
 
 ```sql
 create extension if not exists pg_cron;
@@ -115,8 +120,13 @@ select cron.schedule(
   sees the Supabase publishable key, which is designed to be public.
 - Row Level Security: users can only insert and read their own `feedback_jobs`.
   All scoring runs through the server with the secret key.
-- Per-user limits: 10 submissions/hour, 20 breakdowns/hour. Global limit:
+- Per-user limits: 10 written submissions/hour and 20 Gemini summary/interview
+  requests/hour. Global limit:
   `GEMINI_DAILY_CAP` evaluations/day.
+- Privileged queue RPCs are executable only by `service_role`; browser-facing
+  roles cannot claim jobs or alter evaluation records.
+- Mock interview audio is not uploaded or persisted. The submitted transcript is
+  sent to Gemini for the structured review.
 - If a key is ever shared in chat or committed, **roll it** (Supabase → Settings →
   API; Google AI Studio → API keys).
 

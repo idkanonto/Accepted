@@ -6,7 +6,7 @@ export type SimulatorProgram = {
   prompts: string[];
 };
 
-/** Simulator prompt bank — mirrors the source site exactly. */
+/** Representative practice prompts. Confirm current application formats with each institution. */
 export const SIMULATOR_PROGRAMS: SimulatorProgram[] = [
   {
     code: 'queens_comm',
@@ -84,7 +84,7 @@ export const SIMULATOR_PROGRAMS: SimulatorProgram[] = [
     group: 'Engineering & Computer Science',
     university: 'University of Waterloo',
     prompts: [
-      'AIF Prompt: Discuss a software project, algorithmic puzzle, or coding challenge that pushed your problem-solving limits.',
+      'Discuss a software project, algorithmic puzzle, or coding challenge that pushed your problem-solving limits.',
       'Why Computer Science at Waterloo? How do your extracurriculars and background prepare you for rigorous theoretical and practical CS?',
     ],
   },
@@ -104,7 +104,7 @@ export const SIMULATOR_PROGRAMS: SimulatorProgram[] = [
     group: 'Engineering & Computer Science',
     university: 'McMaster University',
     prompts: [
-      'Kira Video Prompt: How do you handle constructive criticism when working in high-stakes team environments?',
+      'How do you handle constructive criticism when working in a high-stakes team environment?',
       'Describe an instance where you identified an inefficiency in your school or community and designed a practical solution.',
     ],
   },
@@ -114,7 +114,7 @@ export const SIMULATOR_PROGRAMS: SimulatorProgram[] = [
     group: 'Health Sciences & Nursing',
     university: "Queen's University",
     prompts: [
-      'Kira Written/Video Prompt: Discuss a contemporary ethical dilemma in healthcare delivery. What factors should policymakers weigh first?',
+      'Discuss a current ethical dilemma in healthcare delivery. What factors should decision-makers weigh first?',
       'What personal experience has most shaped your empathy and commitment to healthcare?',
     ],
   },
@@ -124,7 +124,7 @@ export const SIMULATOR_PROGRAMS: SimulatorProgram[] = [
     group: 'Health Sciences & Nursing',
     university: 'McMaster University',
     prompts: [
-      "McMaster BHSc Essay Prompt: 'Education is not the learning of facts, but the training of the mind to think.' Discuss a time your perspective on a firmly held belief was fundamentally challenged.",
+      'Describe a time when your perspective on a firmly held belief was challenged. How did you respond, and what changed?',
       'If you could allocate a multi-million dollar public health grant between preventative community wellness and advanced acute care hospital research, how would you divide it and why?',
     ],
   },
@@ -134,7 +134,7 @@ export const SIMULATOR_PROGRAMS: SimulatorProgram[] = [
     group: 'Arts, Design & Architecture',
     university: 'University of Toronto',
     prompts: [
-      'Daniels One Idea Prompt: Describe an architectural or spatial design issue in your local urban environment. Propose one concrete intervention to improve human interaction with the space.',
+      'Describe an architectural or spatial design issue in your local environment. Propose one concrete intervention to improve how people use that space.',
     ],
   },
   {
@@ -143,7 +143,7 @@ export const SIMULATOR_PROGRAMS: SimulatorProgram[] = [
     group: 'Arts, Design & Architecture',
     university: 'Toronto Metropolitan University',
     prompts: [
-      'Creative School Portfolio Essay: Discuss a piece of media, design, or journalism from the past year that shifted public discourse. What made its narrative effective?',
+      'Discuss a piece of media, design, or journalism that changed how you thought about an issue. What made its communication effective?',
     ],
   },
   {
@@ -152,7 +152,7 @@ export const SIMULATOR_PROGRAMS: SimulatorProgram[] = [
     group: 'Arts, Design & Architecture',
     university: 'York University',
     prompts: [
-      'AMPD Statement of Intent: What artistic medium or storytelling form allows you to express your worldview most effectively, and why?',
+      'What artistic medium or storytelling form lets you express your perspective most effectively, and why?',
     ],
   },
 ];

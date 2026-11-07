@@ -28,11 +28,12 @@ export default function Vault() {
         <div>
           <p className="eyebrow">Program Vault</p>
           <h1 className="mt-2 font-display text-2xl font-semibold text-cream md:text-3xl">
-            Comprehensive Ontario Supp App Vault
+            Ontario Supplemental Program Guide
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
             Select a university below to browse all programs requiring supplemental
-            applications, competitive averages, and deadlines.
+            applications, competitive averages, and deadlines. These are planning
+            references, not official admission guarantees; verify each detail with the university.
           </p>
         </div>
         <div className="w-full md:w-72">
@@ -42,6 +43,7 @@ export default function Vault() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search programs and requirements"
               placeholder="Search program name..."
               className="w-full rounded-lg border border-line bg-ink py-2.5 pl-9 pr-3 text-sm text-cream outline-none focus:border-accent"
             />
@@ -54,6 +56,7 @@ export default function Vault() {
           <button
             key={u.key}
             onClick={() => setUniKey(u.key)}
+            aria-pressed={uniKey === u.key}
             className={`rounded-xl px-3 py-3 text-xs font-medium transition ${
               uniKey === u.key
                 ? 'bg-accent text-ink shadow'
@@ -65,8 +68,8 @@ export default function Vault() {
         ))}
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-line bg-panel">
-        <div className="flex items-center justify-between border-b border-line bg-ink/50 p-5">
+      <div className="panel mt-4 overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-ink/50 p-4 sm:p-5">
           <h2 className="text-lg font-bold text-cream">
             {university.name} — Programs with Supplemental Requirements
           </h2>
@@ -75,7 +78,33 @@ export default function Vault() {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="space-y-3 p-3 md:hidden">
+          {rows.map((program) => (
+            <article key={program.name} className="rounded-xl border border-line bg-ink/50 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-base font-semibold text-cream">{program.name}</h3>
+                <span className="shrink-0 rounded-md bg-accent-deep px-2 py-1 text-xs font-semibold text-accent">
+                  {program.avg}
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-5 text-muted">{program.req}</p>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <span className="text-xs font-medium text-gold">Deadline: {program.deadline}</span>
+                <Link
+                  href={`/simulator?program=${program.code}`}
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-line bg-panel px-3 text-xs font-semibold text-accent transition hover:border-accent/50"
+                >
+                  Practice prompt <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+            </article>
+          ))}
+          {rows.length === 0 && (
+            <p className="p-8 text-center text-sm text-muted">No programs match “{query}”.</p>
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs uppercase tracking-wider text-muted">

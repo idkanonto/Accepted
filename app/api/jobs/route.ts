@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { getSessionUser, getSupabaseAdmin } from '@/lib/supabase/server';
-import { queuedCount } from '@/lib/queue';
+import { drainQueue } from '@/lib/queue';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const HOURLY_LIMIT = 10;
+export const maxDuration = 30;
 
-/** Queue a written answer for async scoring. */
+/** Queue an answer for background scoring and return without holding the request open. */
 export async function POST(req: Request) {
   const user = await getSessionUser(req.headers.get('authorization'));
   if (!user) {
@@ -18,20 +19,34 @@ export async function POST(req: Request) {
   const question = typeof body?.question === 'string' ? body.question.trim() : '';
   const answer = typeof body?.answer === 'string' ? body.answer.trim() : '';
 
-  if (!question || answer.length < 20) {
+  if (!question || question.length > 2000 || answer.length < 20 || answer.length > 6000) {
     return NextResponse.json(
-      { error: 'Write at least a sentence or two before submitting.' },
+      { error: 'Include a question and an answer between 20 and 6,000 characters.' },
       { status: 400 }
     );
+  }
+  if (
+    (body?.format !== undefined && body.format !== 'written' && body.format !== 'video') ||
+    (body?.programCode !== undefined && typeof body.programCode !== 'string') ||
+    (body?.program !== undefined && typeof body.program !== 'string') ||
+    (body?.university !== undefined && typeof body.university !== 'string') ||
+    String(body?.program ?? '').length > 160 ||
+    String(body?.university ?? '').length > 120
+  ) {
+    return NextResponse.json({ error: 'Some application details are invalid.' }, { status: 400 });
   }
 
   // Per-user hourly throttle — keeps one student from flooding the queue.
   const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { count } = await getSupabaseAdmin()
+  const { count, error: countError } = await getSupabaseAdmin()
     .from('feedback_jobs')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .gte('created_at', since);
+  if (countError) {
+    console.error('Could not verify submission rate limit:', countError);
+    return NextResponse.json({ error: 'Could not verify the submission limit.' }, { status: 503 });
+  }
 
   if ((count ?? 0) >= HOURLY_LIMIT) {
     return NextResponse.json(
@@ -56,8 +71,17 @@ export async function POST(req: Request) {
     .single();
 
   if (error || !data) {
+    console.error('Could not create feedback job:', error);
     return NextResponse.json({ error: 'Could not queue your answer.' }, { status: 500 });
   }
 
-  return NextResponse.json({ id: data.id, queued: await queuedCount() });
+  after(async () => {
+    try {
+      await drainQueue();
+    } catch (issue) {
+      console.error('Background feedback queue drain failed:', issue);
+    }
+  });
+
+  return NextResponse.json({ id: data.id, queued: null }, { status: 202 });
 }

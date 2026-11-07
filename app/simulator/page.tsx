@@ -6,7 +6,7 @@ import { SITE } from '@/lib/site';
 export const metadata = {
   title: 'Supp App Simulator',
   description:
-    'Practice real Ontario university supplemental application prompts under strict prep and response timers, and get written answers scored by Nova.',
+    'Practise representative Ontario supplemental application prompts under strict timers and get specific written feedback.',
 };
 
 export default function SimulatorPage() {
@@ -14,10 +14,11 @@ export default function SimulatorPage() {
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
       <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-accent/30 bg-gradient-to-r from-accent-deep/20 to-panel p-6 shadow-lg md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-cream">Timed Supp App Simulator</h1>
+          <h1 className="text-2xl font-bold text-cream">Supplemental Application Practice</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted">
-            Practice with real prompts from Waterloo, U of T, McMaster, Queen&apos;s,
-            Ivey, Schulich, and TMU under strict timers.
+            Practise representative supplemental prompts from Ontario program areas
+            under strict timers, with direct coaching on written answers. Prompts are
+            for preparation and are not represented as current or official admissions questions.
           </p>
         </div>
         <a

@@ -13,7 +13,7 @@ export type University = {
   programs: Program[];
 };
 
-/** Program vault data — mirrors the source site exactly. */
+/** Planning references only; confirm current requirements and deadlines with each university. */
 export const UNIVERSITIES: University[] = [
   {
     key: 'waterloo',
