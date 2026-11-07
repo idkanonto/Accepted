@@ -241,10 +241,11 @@ export default function MockInterview() {
             </select>
             <button
               onClick={beginInterview}
-              disabled={phase === 'loading'}
+              disabled={authLoading}
               className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-soft disabled:opacity-60"
             >
-              Start mock interview <ArrowRight className="h-4 w-4" />
+              {authLoading ? 'Checking your account…' : 'Start mock interview'}
+              {!authLoading && <ArrowRight className="h-4 w-4" />}
             </button>
             <p className="mt-3 text-xs leading-5 text-muted">
               A microphone is optional. Speech recognition availability depends on your browser.
