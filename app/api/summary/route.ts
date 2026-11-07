@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => null);
     const stats = body?.stats;
-    if (!stats || typeof stats !== 'object') {
+    if (!stats || typeof stats !== 'object' || JSON.stringify(stats).length > 20_000) {
       return NextResponse.json({ error: 'stats are required' }, { status: 400 });
     }
 
@@ -89,7 +89,7 @@ No fluff. No praise. Clear English. Return the JSON only.`;
 
     return NextResponse.json(result);
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Summary failed.';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('Summary failed:', e);
+    return NextResponse.json({ error: 'Could not generate the breakdown. Try again.' }, { status: 500 });
   }
 }

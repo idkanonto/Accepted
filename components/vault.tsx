@@ -1,13 +1,18 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { UNIVERSITIES } from '@/lib/data/programs';
+import { readPlannerAverage } from '@/lib/position';
+import { ProgramTags, RangeBar } from './program-signals';
 import { ArrowRight, Search } from 'lucide-react';
 
 export default function Vault() {
   const [uniKey, setUniKey] = useState<string>('waterloo');
   const [query, setQuery] = useState('');
+  const [average, setAverage] = useState<number | null>(null);
+
+  useEffect(() => setAverage(readPlannerAverage()), []);
 
   const university = UNIVERSITIES.find((u) => u.key === uniKey) ?? UNIVERSITIES[0];
 
@@ -51,7 +56,20 @@ export default function Vault() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+      <p className="mt-4 text-xs text-muted">
+        {average == null ? (
+          <>
+            <Link href="/planner" className="font-semibold text-accent hover:underline">
+              Set your average in the Planner
+            </Link>{' '}
+            to see where you sit on each range.
+          </>
+        ) : (
+          <>Your saved average is {average}%. The marker on each bar shows where you sit.</>
+        )}
+      </p>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
         {UNIVERSITIES.map((u) => (
           <button
             key={u.key}
@@ -88,6 +106,10 @@ export default function Vault() {
                 </span>
               </div>
               <p className="mt-3 text-sm leading-5 text-muted">{program.req}</p>
+              <div className="mt-3 space-y-3">
+                <RangeBar label={program.avg} average={average} />
+                <ProgramTags req={program.req} />
+              </div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-xs font-medium text-gold">Deadline: {program.deadline}</span>
                 <Link
@@ -123,8 +145,14 @@ export default function Vault() {
                     <span className="rounded-md border border-accent/40 bg-accent-deep/20 px-2.5 py-1 font-semibold text-accent-soft">
                       {p.avg}
                     </span>
+                    <div className="mt-3">
+                      <RangeBar label={p.avg} average={average} />
+                    </div>
                   </td>
-                  <td className="max-w-md p-4 text-xs text-muted">{p.req}</td>
+                  <td className="max-w-md space-y-2 p-4 text-xs text-muted">
+                    <p>{p.req}</p>
+                    <ProgramTags req={p.req} />
+                  </td>
                   <td className="whitespace-nowrap p-4 font-mono text-xs text-gold">
                     {p.deadline}
                   </td>

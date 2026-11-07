@@ -203,7 +203,7 @@ export default function Simulator() {
       } catch {
         if (!stopped) setError('Connection interrupted. Checking your saved evaluation again shortly.');
       } finally {
-        if (!stopped) timer = setTimeout(tick, 10_000);
+        if (!stopped) timer = setTimeout(tick, 2_500);
       }
     };
 

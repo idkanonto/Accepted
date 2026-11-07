@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Check, Circle, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { UNIVERSITIES } from '@/lib/data/programs';
+import { PLANNER_KEY, academicPosition, readEcLevel, type EcLevel } from '@/lib/position';
+import { EcFit, ProgramTags, RangeBar } from './program-signals';
 
 type PlannedProgram = {
   id: string;
@@ -21,7 +23,7 @@ type PlannerState = {
   completed: string[];
 };
 
-const STORAGE_KEY = 'accepted-application-planner-v1';
+const STORAGE_KEY = PLANNER_KEY;
 const CHECKLIST = [
   'Confirm each program and campus on OUAC',
   'Check each university portal and supplemental requirements',
@@ -37,42 +39,6 @@ const PROGRAM_OPTIONS = UNIVERSITIES.flatMap((university) =>
     ...program,
   }))
 );
-
-function averageRange(label: string): [number, number] | null {
-  const values = label.match(/\d{2}/g)?.map(Number);
-  if (!values?.length) return null;
-  if (label.includes('+')) return [values[0], values[0]];
-  if (values.length > 1) return [values[0], values[1]];
-  return [values[0], values[0]];
-}
-
-function academicPosition(average: number, label: string) {
-  const range = averageRange(label);
-  if (!range) return null;
-  const [low, high] = range;
-  if (average >= high) {
-    return {
-      title: 'Above the listed reference range',
-      description: 'Your current average is above this broad reference point.',
-      tone: 'text-accent',
-      distance: 0,
-    };
-  }
-  if (average >= low - 2) {
-    return {
-      title: 'Near the listed reference range',
-      description: 'Your current average is close to this broad reference point.',
-      tone: 'text-gold',
-      distance: Math.max(0, high - average),
-    };
-  }
-  return {
-    title: 'Below the listed reference range',
-    description: 'Your current average is below this broad reference point.',
-    tone: 'text-rose',
-    distance: low - average,
-  };
-}
 
 function isPlannedProgram(value: unknown): value is PlannedProgram {
   if (!value || typeof value !== 'object') return false;
@@ -95,6 +61,9 @@ export default function Planner() {
   const [choice, setChoice] = useState('');
   const [saved, setSaved] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [ecLevel, setEcLevel] = useState<EcLevel | null>(null);
+
+  useEffect(() => setEcLevel(readEcLevel()), []);
 
   useEffect(() => {
     try {
@@ -213,7 +182,7 @@ export default function Planner() {
             <button
               onClick={addProgram}
               disabled={!choice || selected.some((program) => program.id === choice)}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-white transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-ink transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus className="h-4 w-4" /> Add program
             </button>
@@ -274,11 +243,18 @@ export default function Planner() {
                           </p>
                         </div>
                       </div>
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <RangeBar label={program.avg} average={average} />
+                        <ProgramTags req={program.req} />
+                      </div>
                       {position && (
                         <p className="mt-3 text-xs leading-5 text-muted">
                           {position.description} Listed requirements: {program.req}
                         </p>
                       )}
+                      <div className="mt-2">
+                        <EcFit req={program.req} level={ecLevel} />
+                      </div>
                       <Link
                         href={`/simulator?program=${program.code}`}
                         className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline"
@@ -308,7 +284,7 @@ export default function Planner() {
               step="1"
               value={average}
               onChange={(event) => updateAverage(event.target.value)}
-              className="mt-3 w-full accent-[#456b52]"
+              className="mt-3 w-full accent-[#d5b893]"
             />
             <div className="flex justify-between text-[11px] text-muted">
               <span>50%</span><span>100%</span>

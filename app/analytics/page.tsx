@@ -1,3 +1,4 @@
+import RequireAuth from '@/components/require-auth';
 import AnalyticsDashboard from '@/components/analytics-dashboard';
 
 export const metadata = {
@@ -9,7 +10,9 @@ export const metadata = {
 export default function AnalyticsPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-      <AnalyticsDashboard />
+      <RequireAuth what="your progress">
+        <AnalyticsDashboard />
+      </RequireAuth>
     </div>
   );
 }
