@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import RequireAuth from '@/components/require-auth';
 import Simulator from '@/components/simulator';
+import { LoadingState, PageHeading } from '@/components/ui';
 
 export const metadata = {
   title: 'Supp App Simulator',
@@ -10,20 +11,18 @@ export const metadata = {
 
 export default function SimulatorPage() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-medium text-cream sm:text-3xl">
-          Supplemental Application Practice
-        </h1>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-muted">
-          Practise representative supplemental prompts from Ontario program areas under strict
-          timers, with direct coaching on written answers. Prompts are for preparation and are not
-          represented as current or official admissions questions.
-        </p>
-      </header>
+    <div className="page-container">
+      <PageHeading
+        eyebrow="PREPARE & PRACTISE / SUPP APP SIMULATOR"
+        title="Find the words that feel like you."
+      >
+        Practise representative Ontario supplemental prompts with strict prep and response timers.
+        Get direct coaching on written answers. These are practice questions, not current or
+        official admissions questions.
+      </PageHeading>
 
-      <RequireAuth what="the practice simulator">
-        <Suspense fallback={<p className="text-sm text-muted">Loading the simulator…</p>}>
+      <RequireAuth what="the practice simulator" heading={false}>
+        <Suspense fallback={<LoadingState label="Loading the simulator…" />}>
           <Simulator />
         </Suspense>
       </RequireAuth>

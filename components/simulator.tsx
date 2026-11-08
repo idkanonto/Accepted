@@ -3,15 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import {
-  SIMULATOR_PROGRAMS,
-  PROGRAM_GROUPS,
-  getSimulatorProgram,
-} from '@/lib/data/prompts';
+import { SIMULATOR_PROGRAMS, PROGRAM_GROUPS, getSimulatorProgram } from '@/lib/data/prompts';
 import { authFetch } from '@/lib/supabase/client';
 import { trackEvent } from '@/lib/track';
 import { useAuth } from './auth-provider';
 import ScoreRing from './score-ring';
+import { EmptyState } from './ui';
 import {
   ArrowRight,
   Check,
@@ -53,7 +50,6 @@ type Feedback = {
 };
 
 type Quota = { used: number; limit: number; resetAt: string };
-
 
 function isFeedback(value: unknown): value is Feedback {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -242,7 +238,8 @@ export default function Simulator() {
           return;
         }
       } catch {
-        if (!stopped) setError('Connection interrupted. Checking your saved evaluation again shortly.');
+        if (!stopped)
+          setError('Connection interrupted. Checking your saved evaluation again shortly.');
       } finally {
         if (!stopped) timer = setTimeout(tick, 2_500);
       }
@@ -296,7 +293,9 @@ export default function Simulator() {
       return;
     }
     if (words > MAX_WORDS || answer.length > MAX_CHARS) {
-      setError(`Keep the answer under ${MAX_WORDS} words so it stays focused and fits the real format.`);
+      setError(
+        `Keep the answer under ${MAX_WORDS} words so it stays focused and fits the real format.`
+      );
       return;
     }
     if (authLoading) return;
@@ -372,12 +371,12 @@ export default function Simulator() {
   const overLimit = words > MAX_WORDS || answer.length > MAX_CHARS;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+    <div className="studio-layout">
       {/* Configuration */}
-      <aside className="panel h-fit space-y-5 p-5">
+      <aside className="studio-setup panel space-y-6 p-5 sm:p-6">
         <div>
-          <p className="eyebrow">Practice setup</p>
-          <h2 className="mt-2 text-xl font-medium text-cream">Configuration</h2>
+          <p className="eyebrow">01 / PRACTICE SETUP</p>
+          <h2 className="mt-2 text-lg font-semibold text-cream">Make it your own</h2>
         </div>
 
         <div>
@@ -400,6 +399,9 @@ export default function Simulator() {
               </optgroup>
             ))}
           </select>
+          <p className="mt-2 text-xs leading-6 text-muted">
+            {program.label} · {program.university}
+          </p>
         </div>
 
         <div>
@@ -418,6 +420,9 @@ export default function Simulator() {
               </option>
             ))}
           </select>
+          <p className="mt-2 text-xs leading-6 text-muted">
+            {FORMATS[format].prep}s preparation · {FORMATS[format].response / 60} min response
+          </p>
         </div>
 
         <button onClick={startSimulation} className="btn-primary w-full">
@@ -432,15 +437,37 @@ export default function Simulator() {
       </aside>
 
       {/* Active area */}
-      <section className="panel flex min-h-[480px] flex-col p-6">
+      <section className="practice-canvas panel flex min-w-0 flex-col p-5 sm:p-8">
+        <div
+          className="mb-8 flex flex-wrap items-center justify-between gap-3 border-b border-line/70 pb-5"
+          aria-label="Practice stages"
+        >
+          {['Prepare', 'Respond', 'Reflect'].map((label, index) => (
+            <span
+              key={label}
+              className="practice-stage"
+              data-active={
+                (index === 0 && (phase === 'idle' || phase === 'prep')) ||
+                (index === 1 && phase === 'response') ||
+                (index === 2 && ['waiting', 'feedback', 'done'].includes(phase))
+              }
+            >
+              <span className="number-label">{String(index + 1).padStart(2, '0')}</span>
+              {label}
+            </span>
+          ))}
+        </div>
         {phase === 'idle' && (
-          <div className="my-auto space-y-3 text-center">
-            <GraduationCap className="mx-auto h-10 w-10 text-accent" />
-            <h3 className="text-xl font-medium text-cream">Choose a program and format</h3>
-            <p className="mx-auto max-w-md text-sm leading-6 text-muted">
-              Work through representative questions with strict prep and response timers.
-              Confirm current application details with your chosen program.
-            </p>
+          <div className="my-auto">
+            <EmptyState icon={GraduationCap} title="A clear mind. A fresh page.">
+              Choose your program and format, then start a timed practice. You’ll have a preparation
+              window before your response begins. Confirm current application details with your
+              chosen program.
+            </EmptyState>
+            <div className="mx-auto mb-8 flex max-w-md items-center justify-center gap-6 text-xs text-muted">
+              <span>Written: 60s prep · 10 min</span>
+              <span>Video: 30s prep · 2 min</span>
+            </div>
           </div>
         )}
 
@@ -460,16 +487,18 @@ export default function Simulator() {
                     ? 'Writing window'
                     : 'Response time'}
               </span>
-              <div className="font-mono text-2xl font-semibold tabular-nums text-cream">
+              <div
+                className={`rounded-xl px-4 py-2 font-mono text-2xl font-semibold tabular-nums ${timeLeft <= 10 ? 'bg-mortuum text-rose' : 'bg-ink text-cream'}`}
+                role="timer"
+                aria-label="Time remaining"
+              >
                 {mins}:{secs}
               </div>
             </div>
 
             <div className="space-y-2">
               <p className="eyebrow">Practice prompt</p>
-              <div className="rounded-lg border border-line bg-ink p-4 text-base leading-7 text-cream">
-                {prompt}
-              </div>
+              <div className="practice-prompt">{prompt}</div>
               <p className="text-xs text-muted">
                 {program.label} · {program.university}
               </p>
@@ -478,14 +507,23 @@ export default function Simulator() {
             <div className="space-y-2">
               {format === 'written' ? (
                 <>
+                  <label htmlFor="sim-answer" className="label">
+                    Your response
+                  </label>
                   <textarea
+                    id="sim-answer"
+                    aria-describedby="sim-word-count"
+                    aria-invalid={overLimit}
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
                     rows={7}
                     placeholder="Type your response here under the real time limit…"
-                    className="input min-h-[180px] resize-y leading-6"
+                    className="input min-h-[240px] resize-y !bg-panel !text-base leading-7"
                   />
-                  <div className="flex items-center justify-between text-xs">
+                  <div
+                    id="sim-word-count"
+                    className="flex flex-wrap items-center justify-between gap-2 text-xs"
+                  >
                     <span className={overLimit ? 'font-medium text-rose' : 'text-muted'}>
                       {words} / {MAX_WORDS} words
                     </span>
@@ -496,7 +534,7 @@ export default function Simulator() {
                 </>
               ) : (
                 <div className="space-y-3 rounded-lg border border-line bg-ink p-8 text-center">
-                  <Video className="mx-auto h-8 w-8 animate-pulse text-accent" />
+                  <Video className="mx-auto h-8 w-8 text-accent" />
                   <p className="mx-auto max-w-md text-sm leading-6 text-muted">
                     Use this window to practise aloud. This timer does not record audio. For
                     transcription and scored feedback, use the mock interview.
@@ -506,21 +544,21 @@ export default function Simulator() {
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 border-l-2 border-rose bg-rose/10 px-4 py-3 text-sm text-rose">
+              <div role="alert" className="feedback-error flex items-start gap-2">
                 <MessageSquareWarning className="h-4 w-4 shrink-0" />
                 {error}
               </div>
             )}
 
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-wrap justify-end gap-3">
               <button onClick={reset} className="btn-ghost">
-                Abort
+                End practice
               </button>
               <button onClick={progressSimulation} className="btn-primary">
                 {phase === 'prep'
-                  ? 'Skip prep / start now'
+                  ? 'Start response now'
                   : format === 'written'
-                    ? 'Finish & submit'
+                    ? 'Finish & get feedback'
                     : 'Finish'}
               </button>
             </div>
@@ -528,17 +566,23 @@ export default function Simulator() {
         )}
 
         {phase === 'waiting' && (
-          <div className="my-auto space-y-4 text-center">
+          <div className="my-auto space-y-4 py-8 text-center" role="status">
             <Loader2 className="mx-auto h-10 w-10 animate-spin text-accent" />
             <h3 className="text-xl font-medium text-cream">
-              {queuePosition === null ? 'Scoring your answer…' : `Queued — position #${queuePosition}`}
+              {queuePosition === null
+                ? 'Scoring your answer…'
+                : `Queued — position #${queuePosition}`}
             </h3>
             <p className="mx-auto max-w-md text-sm leading-6 text-muted">
               {capReached
                 ? 'Today’s free scoring limit is reached. Your answer stays in the queue and will be scored when the limit resets.'
                 : 'This usually takes a few seconds. Your result will appear here when it is ready.'}
             </p>
-            {error && <p role="status" className="mx-auto max-w-md text-xs text-gold">{error}</p>}
+            {error && (
+              <p role="status" className="mx-auto max-w-md text-xs text-gold">
+                {error}
+              </p>
+            )}
           </div>
         )}
 
@@ -561,7 +605,7 @@ export default function Simulator() {
               </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-2">
               <div>
                 <h4 className="flex items-center gap-2 text-sm font-semibold text-cream">
                   <Check className="h-4 w-4 text-accent" /> What works
@@ -586,7 +630,7 @@ export default function Simulator() {
 
             <div>
               <h4 className="text-sm font-semibold text-cream">Model rewrite</h4>
-              <p className="mt-3 whitespace-pre-wrap border-l-2 border-accent bg-ink p-4 text-base leading-7 text-cream">
+              <p className="mt-3 whitespace-pre-wrap break-words rounded-xl bg-ink p-5 text-base leading-8 text-cream">
                 {feedback.rewrite}
               </p>
             </div>
@@ -598,7 +642,7 @@ export default function Simulator() {
               >
                 See it in your analytics <ArrowRight className="h-4 w-4" />
               </Link>
-              <div className="flex items-center gap-3 text-xs text-muted">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
                 {quota && (
                   <span>
                     {quota.used} of {quota.limit} free evaluations used today
@@ -609,11 +653,16 @@ export default function Simulator() {
                 </span>
               </div>
             </div>
+            <p className="text-xs leading-6 text-muted">
+              This feedback is a practice aid, not an admissions decision. Use the model rewrite to
+              learn structure and clarity; your application should reflect your own experiences and
+              voice.
+            </p>
           </div>
         )}
 
         {phase === 'done' && (
-          <div className="my-auto space-y-4 text-center">
+          <div className="my-auto space-y-4 py-8 text-center" role="status">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-xl text-accent">
               <Check className="h-6 w-6" />
             </div>

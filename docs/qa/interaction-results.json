@@ -1,0 +1,19 @@
+{
+  "passed": 14,
+  "results": [
+    "Advancing is disabled while speaking",
+    "Synthetic speech transcript survives stop",
+    "Microphone permission error offers typed fallback",
+    "Permission error preserves transcript",
+    "/ at 200% text: no page overflow (390/390)",
+    "/vault at 200% text: no page overflow (390/390)",
+    "/planner at 200% text: no page overflow (390/390)",
+    "/simulator at 200% text: no page overflow (390/390)",
+    "/interview at 200% text: no page overflow (390/390)",
+    "/ec-rater at 200% text: no page overflow (390/390)",
+    "/analytics at 200% text: no page overflow (390/390)",
+    "/login at 200% text: no page overflow (390/390)",
+    "Overview closes navigation even on the current route",
+    "Long account email wraps within the account view"
+  ]
+}

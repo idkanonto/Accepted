@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Check, Mic, MicOff, RotateCcw } from 'lucide-react';
+import { ArrowRight, Loader2, MessageSquare, Mic, MicOff, RotateCcw } from 'lucide-react';
 import { SIMULATOR_PROGRAMS } from '@/lib/data/prompts';
 import { authFetch } from '@/lib/supabase/client';
 import { trackEvent } from '@/lib/track';
 import { useAuth } from '@/components/auth-provider';
+import { Notice, PageHeading } from './ui';
+import ScoreRing from './score-ring';
 
 type Phase = 'ready' | 'loading' | 'answering' | 'analyzing' | 'results';
 
@@ -106,7 +108,9 @@ export default function MockInterview() {
   function startRecording() {
     const SpeechRecognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setError('Speech-to-text is not available in this browser. You can type your answer instead.');
+      setError(
+        'Speech-to-text is not available in this browser. You can type your answer instead.'
+      );
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -190,7 +194,9 @@ export default function MockInterview() {
     recognition.onerror = (event) => {
       trackEvent('voice_error', { error: event.error });
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        stopRecognition('Microphone access was blocked. Allow microphone access or type your answer.');
+        stopRecognition(
+          'Microphone access was blocked. Allow microphone access or type your answer.'
+        );
       } else if (event.error === 'audio-capture') {
         stopRecognition('No microphone was found. Check your device or type your answer.');
       } else if (event.error === 'network') {
@@ -242,7 +248,9 @@ export default function MockInterview() {
       clearWatchdog();
       stopStream();
       shouldRecordRef.current = false;
-      setError('Could not start speech recognition. Check microphone permissions or type your answer.');
+      setError(
+        'Could not start speech recognition. Check microphone permissions or type your answer.'
+      );
     }
   }
 
@@ -314,181 +322,252 @@ export default function MockInterview() {
   }
 
   return (
-    <div className="space-y-6">
-      <header className="max-w-3xl">
-        <p className="eyebrow">Voice practice</p>
-        <h1 className="mt-3 text-3xl font-medium leading-tight text-cream sm:text-4xl">
-          Rehearse out loud. Reflect with purpose.
-        </h1>
-        <p className="mt-3 max-w-2xl text-base leading-7 text-muted">
-          Answer three program-focused questions using your voice or keyboard. Your transcript is
-          reviewed for substance and clarity. Microphone audio is never uploaded to Accepted.
-        </p>
-      </header>
-
-      <section className="panel mx-auto max-w-4xl p-5 sm:p-8">
-        {phase === 'ready' && (
-          <div className="mx-auto max-w-xl py-4">
-            <p className="eyebrow">Before you begin</p>
-            <h2 className="mt-3 text-2xl font-medium text-cream">Set up a short practice round</h2>
-            <p className="mt-3 text-sm leading-6 text-muted">
-              Questions are generated for practice and are not represented as official or leaked
-              admissions questions. Use a quiet space and answer from your own experience.
-            </p>
-            <label htmlFor="interview-program" className="label mt-6">
-              Choose a program area
-            </label>
-            <select
-              id="interview-program"
-              value={programCode}
-              onChange={(event) => setProgramCode(event.target.value)}
-              className="input"
-            >
-              {SIMULATOR_PROGRAMS.map((program) => (
-                <option key={program.code} value={program.code}>
-                  {program.label}
-                </option>
-              ))}
-            </select>
-            <button onClick={beginInterview} disabled={authLoading} className="btn-primary mt-5 w-full">
-              {authLoading ? 'Checking your account…' : 'Start mock interview'}
-              {!authLoading && <ArrowRight className="h-4 w-4" />}
-            </button>
-            <p className="mt-3 text-xs leading-5 text-muted">
-              The microphone is optional. Speech recognition runs in your browser and may send
-              audio to its own recognition service.
-            </p>
-          </div>
-        )}
-
-        {phase === 'loading' && (
-          <div className="py-16 text-center" role="status">
-            <p className="text-base font-medium text-cream">Preparing your questions…</p>
-            <p className="mt-2 text-sm text-muted">This can take a few seconds.</p>
-          </div>
-        )}
-
-        {phase === 'answering' && currentQuestion && (
-          <div>
-            <p className="eyebrow">
-              Question {questionIndex + 1} of {questions.length}
-            </p>
-            <h2 className="mt-4 text-2xl font-medium leading-snug text-cream sm:text-3xl">
-              {currentQuestion}
-            </h2>
-
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <button
-                onClick={recording ? stopRecording : startRecording}
-                className={recording ? 'btn-ghost border-rose/50 text-rose' : 'btn-primary'}
-              >
-                {recording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                {recording ? 'Stop speaking' : 'Answer by voice'}
-              </button>
-              <span className="text-xs leading-5 text-muted">
-                {recording
-                  ? 'Listening… select stop when you are finished.'
-                  : 'Optional. Your browser may send speech to its own recognition service.'}
-              </span>
-            </div>
-
-            <label htmlFor="interview-answer" className="label mt-6">
-              Your response
-            </label>
-            <textarea
-              id="interview-answer"
-              value={answer}
-              onChange={(event) => {
-                setAnswer(event.target.value);
-                finalTranscriptRef.current = event.target.value;
-              }}
-              maxLength={MAX_CHARS}
-              rows={7}
-              placeholder="Use a specific example. Explain what you did, why it mattered, and what you learned."
-              className="input min-h-[180px] resize-y leading-6"
-            />
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span className={overLimit ? 'font-medium text-rose' : 'text-muted'}>
-                {words} / {MAX_WORDS} words
-              </span>
-              {overLimit && <span className="text-rose">Over the limit — trim before continuing.</span>}
-            </div>
-
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={advance}
-                disabled={recording}
-                className="btn-primary"
-              >
-                {questionIndex === questions.length - 1 ? 'Finish and review' : 'Next question'}
-                <ArrowRight className="h-4 w-4" />
-              </button>
+    <div>
+      <PageHeading
+        eyebrow="PREPARE & PRACTISE / MOCK INTERVIEW"
+        title="A little practice. A little more you."
+      >
+        Answer three program-focused questions using your voice or keyboard. Your transcript is
+        reviewed for substance and clarity. Microphone audio is never uploaded to Accepted.
+      </PageHeading>
+      <div className="interview-studio">
+        <aside className="min-w-0 lg:sticky lg:top-28">
+          <div className="mb-6 flex items-center gap-3">
+            <span className="icon-tile">
+              <Mic className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold">Your interview studio</p>
+              <p className="text-xs text-muted">A little space to find your voice.</p>
             </div>
           </div>
-        )}
-
-        {phase === 'analyzing' && (
-          <div className="py-16 text-center" role="status">
-            <p className="text-base font-medium text-cream">Reviewing your responses…</p>
-            <p className="mt-2 text-sm text-muted">Your transcript is being assessed against clear practice criteria.</p>
-          </div>
-        )}
-
-        {phase === 'results' && review && (
-          <div>
-            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-6">
-              <div>
-                <p className="eyebrow">Interview review</p>
-                <h2 className="mt-2 text-2xl font-medium text-cream">A clear next step</h2>
+          <div className="space-y-5 border-l border-line pl-5">
+            {[
+              { label: 'Set your direction', description: 'Choose a program area.' },
+              { label: 'Tell your story', description: 'Speak naturally or type your response.' },
+              { label: 'Reflect & refine', description: 'Take one useful lesson forward.' },
+            ].map((step, i) => (
+              <div key={step.label}>
+                <p
+                  className={`text-xs font-semibold ${(i === 0 && phase === 'ready') || (i === 1 && phase === 'answering') || (i === 2 && phase === 'results') ? 'text-accent' : 'text-cream'}`}
+                >
+                  {String(i + 1).padStart(2, '0')} / {step.label}
+                </p>
+                <p className="mt-1 text-xs leading-6 text-muted">{step.description}</p>
               </div>
-              <div className="rounded-xl bg-accent-deep px-5 py-3 text-center">
-                <p className="font-display text-2xl font-semibold text-accent">{review.overallScore}</p>
-                <p className="text-xs text-muted">Practice score</p>
+            ))}
+          </div>
+          <p className="mt-6 text-xs leading-6 text-muted">
+            Questions are generated for practice and are not official or leaked admissions
+            questions. Answer from your own experience.
+          </p>
+        </aside>
+        <section className="panel min-w-0 p-5 sm:p-8" aria-label="Mock interview workspace">
+          {phase === 'ready' && (
+            <div className="mx-auto max-w-xl py-3">
+              <p className="eyebrow">BEFORE YOU BEGIN</p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-tight">
+                Make yourself comfortable.
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-muted">
+                Find a quiet space. Think about experiences that show how you learn, contribute, and
+                grow. There’s no need to have the perfect answer.
+              </p>
+              <div className="my-7 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl bg-ink p-4 text-xs text-muted">
+                <span className="inline-flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-accent" aria-hidden="true" />3 questions
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <Mic className="h-4 w-4 text-accent" aria-hidden="true" />
+                  Voice or keyboard
+                </span>
               </div>
-            </div>
-            <p className="mt-5 text-base leading-7 text-cream">{review.overallAssessment}</p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {review.dimensions.map((dimension) => (
-                <article key={dimension.name} className="rounded-lg border border-line bg-ink/50 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-cream">{dimension.name}</h3>
-                    <span className="font-mono text-sm font-semibold text-accent">{dimension.score}</span>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-muted">{dimension.evidence}</p>
-                  <p className="mt-2 text-sm leading-6 text-cream">{dimension.coaching}</p>
-                </article>
-              ))}
-            </div>
-            <div className="mt-6 rounded-lg bg-ink p-5">
-              <h3 className="text-sm font-semibold text-cream">For your next attempt</h3>
-              <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-muted">
-                {review.nextSteps.map((step, index) => (
-                  <li key={index}>{step}</li>
+              <label htmlFor="interview-program" className="label">
+                Choose a program area
+              </label>
+              <select
+                id="interview-program"
+                value={programCode}
+                onChange={(event) => setProgramCode(event.target.value)}
+                className="input"
+              >
+                {SIMULATOR_PROGRAMS.map((program) => (
+                  <option key={program.code} value={program.code}>
+                    {program.label}
+                  </option>
                 ))}
-              </ol>
+              </select>
+              <button
+                onClick={beginInterview}
+                disabled={authLoading}
+                className="btn-primary mt-5 w-full"
+              >
+                {authLoading ? 'Checking your account…' : 'Start mock interview'}
+                {!authLoading && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
+              </button>
+              <p className="mt-4 text-xs leading-6 text-muted">
+                The microphone is optional. Speech recognition runs in your browser and may send
+                audio to its own recognition service.
+              </p>
             </div>
-            <button onClick={reset} className="btn-ghost mt-6">
-              <RotateCcw className="h-4 w-4" /> Start another round
-            </button>
-          </div>
-        )}
-
-        {error && (
-          <div
-            role="alert"
-            className="mt-5 rounded-lg border border-rose/40 bg-rose/10 px-4 py-3 text-sm text-rose"
-          >
-            {error}
-          </div>
-        )}
-      </section>
-
-      <p className="mx-auto flex max-w-4xl items-start gap-2 text-xs leading-5 text-muted">
-        <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-        Feedback is a practice aid, not an admissions decision. Speech recognition is provided by
-        your browser platform and may use its own service; only your transcript is sent to Accepted
-        for review.
-      </p>
+          )}
+          {phase === 'loading' && (
+            <div className="py-20 text-center" role="status">
+              <Loader2
+                className="mx-auto mb-5 h-7 w-7 animate-spin text-accent"
+                aria-hidden="true"
+              />
+              <h2 className="text-lg font-semibold">Preparing your questions…</h2>
+              <p className="mt-2 text-sm text-muted">A moment to get your practice round ready.</p>
+            </div>
+          )}
+          {phase === 'answering' && currentQuestion && (
+            <div>
+              <div className="mb-7 flex items-center justify-between gap-4">
+                <p className="eyebrow">
+                  QUESTION {questionIndex + 1} OF {questions.length}
+                </p>
+                <div
+                  className="flex gap-1.5"
+                  aria-label={`Question ${questionIndex + 1} of ${questions.length}`}
+                >
+                  {questions.map((_, i) => (
+                    <span
+                      key={i}
+                      className={`h-1.5 w-8 rounded-full ${i <= questionIndex ? 'bg-accent' : 'bg-line'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <h2 className="text-2xl font-semibold leading-snug tracking-tight sm:text-3xl">
+                {currentQuestion}
+              </h2>
+              <div className="mt-7 flex flex-wrap items-center gap-4 rounded-xl bg-ink p-4">
+                <button
+                  onClick={recording ? stopRecording : startRecording}
+                  aria-pressed={recording}
+                  className={recording ? 'btn-danger' : 'btn-ghost'}
+                >
+                  {recording ? (
+                    <MicOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Mic className="h-4 w-4 text-accent" aria-hidden="true" />
+                  )}
+                  {recording ? 'Stop speaking' : 'Answer by voice'}
+                </button>
+                <p className="max-w-xs text-xs leading-6 text-muted" role="status">
+                  {recording
+                    ? 'Listening… select stop when you are finished.'
+                    : 'Optional. Your browser may send speech to its own recognition service.'}
+                </p>
+              </div>
+              <label htmlFor="interview-answer" className="label mt-7">
+                Your response
+              </label>
+              <textarea
+                id="interview-answer"
+                value={answer}
+                onChange={(event) => {
+                  setAnswer(event.target.value);
+                  finalTranscriptRef.current = event.target.value;
+                }}
+                maxLength={MAX_CHARS}
+                rows={7}
+                aria-describedby="interview-word-count"
+                aria-invalid={overLimit}
+                placeholder="Use a specific example. Explain what you did, why it mattered, and what you learned."
+                className="input min-h-[220px] resize-y !bg-panel !text-base leading-7"
+              />
+              <div
+                id="interview-word-count"
+                className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs"
+              >
+                <span className={overLimit ? 'font-medium text-rose' : 'text-muted'}>
+                  {words} / {MAX_WORDS} words
+                </span>
+                {overLimit && (
+                  <span className="text-rose">Over the limit — trim before continuing.</span>
+                )}
+              </div>
+              <div className="mt-6 flex justify-end">
+                <button onClick={advance} disabled={recording} className="btn-primary">
+                  {questionIndex === questions.length - 1 ? 'Finish and review' : 'Next question'}
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          )}
+          {phase === 'analyzing' && (
+            <div className="py-20 text-center" role="status">
+              <Loader2
+                className="mx-auto mb-5 h-7 w-7 animate-spin text-accent"
+                aria-hidden="true"
+              />
+              <h2 className="text-lg font-semibold">Reviewing your responses…</h2>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-7 text-muted">
+                Your transcript is being assessed against clear practice criteria.
+              </p>
+            </div>
+          )}
+          {phase === 'results' && review && (
+            <div>
+              <div className="flex flex-wrap items-center gap-5 border-b border-line pb-6">
+                <ScoreRing score={review.overallScore} />
+                <div>
+                  <p className="eyebrow">YOUR INTERVIEW REVIEW</p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight">A clear next step.</h2>
+                  <p className="mt-1 text-xs text-muted">
+                    Practice feedback, not an admissions decision.
+                  </p>
+                </div>
+              </div>
+              <p className="mt-6 text-base leading-8 text-cream">{review.overallAssessment}</p>
+              <div className="mt-7 divide-y divide-line">
+                {review.dimensions.map((dimension) => (
+                  <article key={dimension.name} className="py-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-base font-semibold">{dimension.name}</h3>
+                      <span className="rounded-lg bg-accent-deep px-3 py-1 text-sm font-semibold tabular-nums text-accent">
+                        {dimension.score}
+                        <span className="ml-1 text-[10px] font-normal">/ 100</span>
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-muted">{dimension.evidence}</p>
+                    <p className="mt-2 text-sm leading-7 text-cream">{dimension.coaching}</p>
+                  </article>
+                ))}
+              </div>
+              <div className="mt-5 rounded-xl bg-ink p-5">
+                <h3 className="text-sm font-semibold">Take this into your next attempt</h3>
+                <ol className="mt-4 space-y-4">
+                  {review.nextSteps.map((step, index) => (
+                    <li key={index} className="flex items-start gap-3 text-sm leading-7 text-muted">
+                      <span className="number-label !h-6 !w-6 !bg-panel">{index + 1}</span>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <button onClick={reset} className="btn-ghost mt-6">
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                Start another round
+              </button>
+            </div>
+          )}
+          {error && (
+            <div role="alert" className="feedback-error mt-5">
+              {error}
+            </div>
+          )}
+        </section>
+      </div>
+      <div className="mt-6">
+        <Notice>
+          Feedback is a practice aid, not an admissions decision. Speech recognition is provided by
+          your browser platform and may use its own service; only your transcript is sent to
+          Accepted for review.
+        </Notice>
+      </div>
     </div>
   );
 }
