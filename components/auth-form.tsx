@@ -59,9 +59,10 @@ export default function AuthForm() {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-1 rounded-lg border border-line bg-ink p-1 text-sm">
+      <div className="segmented !grid grid-cols-2" role="group" aria-label="Account access">
         <button
           type="button"
+          aria-pressed={mode === 'signin'}
           onClick={() => setMode('signin')}
           className={`rounded-md py-2 transition ${
             mode === 'signin' ? 'bg-panel-2 font-semibold text-cream' : 'text-muted'
@@ -71,6 +72,7 @@ export default function AuthForm() {
         </button>
         <button
           type="button"
+          aria-pressed={mode === 'signup'}
           onClick={() => setMode('signup')}
           className={`rounded-md py-2 transition ${
             mode === 'signup' ? 'bg-panel-2 font-semibold text-cream' : 'text-muted'
@@ -80,34 +82,40 @@ export default function AuthForm() {
         </button>
       </div>
 
-      <form onSubmit={submit} className="space-y-3">
+      <form onSubmit={submit} className="space-y-5" aria-busy={loading}>
         <div>
-          <label htmlFor="auth-email" className="mb-1 block text-xs font-medium text-muted">
+          <label htmlFor="auth-email" className="label">
             Email
           </label>
           <input
             id="auth-email"
             type="email"
+            name="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@school.ca"
-            className="w-full rounded-lg border border-line bg-ink px-3 py-2.5 text-sm text-cream outline-none focus:border-accent"
+            className="input"
           />
         </div>
         <div>
-          <label htmlFor="auth-password" className="mb-1 block text-xs font-medium text-muted">
+          <label htmlFor="auth-password" className="label">
             Password
           </label>
           <input
             id="auth-password"
             type="password"
+            name="password"
+            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
             required
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 6 characters"
-            className="w-full rounded-lg border border-line bg-ink px-3 py-2.5 text-sm text-cream outline-none focus:border-accent"
+            className="input"
           />
         </div>
 
@@ -116,7 +124,7 @@ export default function AuthForm() {
             <button
               type="button"
               onClick={forgotPassword}
-              className="text-xs text-muted transition hover:text-accent-soft"
+              className="min-h-11 text-xs font-medium text-accent transition-colors hover:text-accent-soft"
             >
               Forgot password?
             </button>
@@ -124,26 +132,18 @@ export default function AuthForm() {
         )}
 
         {error && (
-          <p className="border-l-2 border-rose bg-rose/10 px-3 py-2 text-sm text-rose">
+          <p role="alert" className="feedback-error">
             {error}
           </p>
         )}
         {info && (
-          <p className="border-l-2 border-accent bg-accent/10 px-3 py-2 text-sm text-accent-soft">
+          <p role="status" className="feedback-success">
             {info}
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-accent py-2.5 text-sm font-medium text-ink transition hover:bg-accent-soft disabled:opacity-60"
-        >
-          {loading
-            ? 'Please wait…'
-            : mode === 'signin'
-              ? 'Sign in'
-              : 'Create account'}
+        <button type="submit" disabled={loading} className="btn-primary w-full">
+          {loading ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
         </button>
       </form>
     </div>

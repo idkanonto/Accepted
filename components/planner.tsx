@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Check, Circle, ExternalLink, Plus, Trash2 } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, ExternalLink, Plus, Save, Trash2 } from 'lucide-react';
 import { UNIVERSITIES } from '@/lib/data/programs';
 import { PLANNER_KEY, academicPosition, readEcLevel, type EcLevel } from '@/lib/position';
 import { EcFit, ProgramTags, RangeBar } from './program-signals';
 import HistoryPanel from './history-panel';
+import { EmptyState, Notice, PageHeading } from './ui';
 import { trackEvent } from '@/lib/track';
 
 type PlannedProgram = {
@@ -145,170 +146,185 @@ export default function Planner() {
   ];
 
   return (
-    <div className="space-y-7">
-      <header className="max-w-3xl">
-        <p className="eyebrow">OUAC &amp; application planning</p>
-        <h1 className="mt-3 text-3xl font-medium leading-tight text-cream sm:text-4xl">
-          Keep the moving parts in one place.
-        </h1>
-        <p className="mt-3 max-w-2xl text-base leading-7 text-muted">
-          Organise program choices, compare your current average with broad reference ranges, and
-          check historical admission grades for past applicants.
+    <div>
+      <PageHeading eyebrow="DISCOVER & PLAN / OUAC PLANNER" title="Make your next move clear.">
+        Your choices, your average, and the steps between here and your application. Start a
+        shortlist and build from there.
+      </PageHeading>
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div role="group" aria-label="Planner sections" className="segmented">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              aria-pressed={tab === t.id}
+              onClick={() => {
+                setTab(t.id);
+                if (t.id === 'history') trackEvent('history_tab_viewed');
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <p className="inline-flex items-center gap-2 text-xs text-muted">
+          <Save className="h-3.5 w-3.5" aria-hidden="true" />
+          Saved privately on this device
         </p>
-      </header>
-
-      <div role="tablist" aria-label="Planner sections" className="flex gap-1 border-b border-line">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => {
-              setTab(t.id);
-              if (t.id === 'history') trackEvent('history_tab_viewed');
-            }}
-            className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${
-              tab === t.id
-                ? 'border-accent text-cream'
-                : 'border-transparent text-muted hover:text-cream'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
       </div>
-
       {tab === 'history' ? (
         <HistoryPanel />
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(300px,0.7fr)]">
-          <section className="panel p-5 sm:p-7">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="eyebrow">My program shortlist</p>
-                <h2 className="mt-2 text-lg font-medium text-cream">Build your list</h2>
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.8fr)]">
+          <div className="min-w-0 space-y-6">
+            <section className="panel p-5 sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="eyebrow">01 / YOUR DIRECTION</p>
+                  <h2 className="section-heading mt-2">The program shortlist</h2>
+                </div>
+                <span className="chip">
+                  {selected.length} program{selected.length === 1 ? '' : 's'}
+                </span>
               </div>
-              <span className="chip">{selected.length} program{selected.length === 1 ? '' : 's'}</span>
-            </div>
-
-            <div className="mt-6 flex max-w-2xl items-stretch gap-3">
-              <label className="sr-only" htmlFor="planner-program">
-                Choose a university program
-              </label>
-              <select
-                id="planner-program"
-                value={choice}
-                onChange={(event) => setChoice(event.target.value)}
-                className="input min-h-11 min-w-0 flex-1"
-              >
-                <option value="">Choose a program to add…</option>
-                {UNIVERSITIES.map((university) => (
-                  <optgroup key={university.key} label={university.name}>
-                    {PROGRAM_OPTIONS.filter((program) => program.university === university.name).map(
-                      (program) => (
-                        <option key={program.id} value={program.id}>
-                          {program.name}
-                        </option>
-                      )
-                    )}
-                  </optgroup>
-                ))}
-              </select>
-              <button
-                onClick={addProgram}
-                disabled={!choice || selected.some((program) => program.id === choice)}
-                className="btn-primary shrink-0"
-              >
-                <Plus className="h-4 w-4" /> Add program
-              </button>
-            </div>
-
-            <div className="mt-6">
-              {selected.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-line px-5 py-10 text-center">
-                  <p className="text-sm font-medium text-cream">Your shortlist is ready to start</p>
-                  <p className="mt-1 text-sm text-muted">
-                    Add the programs you are considering. Your list stays private in this browser.
-                  </p>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                Keep the possibilities you want to explore a little further.
+              </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <div className="min-w-0 flex-1">
+                  <label className="label" htmlFor="planner-program">
+                    Add a university program
+                  </label>
+                  <select
+                    id="planner-program"
+                    value={choice}
+                    onChange={(event) => setChoice(event.target.value)}
+                    className="input"
+                  >
+                    <option value="">Choose a program…</option>
+                    {UNIVERSITIES.map((university) => (
+                      <optgroup key={university.key} label={university.name}>
+                        {PROGRAM_OPTIONS.filter(
+                          (program) => program.university === university.name
+                        ).map((program) => (
+                          <option key={program.id} value={program.id}>
+                            {program.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {selected.map((program) => {
-                    const position = academicPosition(average, program.avg);
-                    return (
-                      <article
-                        key={program.id}
-                        className="rounded-lg border border-line bg-ink/50 p-5"
-                      >
-                        <div className="flex items-start justify-between gap-3">
+                <button
+                  onClick={addProgram}
+                  disabled={!choice || selected.some((program) => program.id === choice)}
+                  className="btn-primary shrink-0 sm:self-end"
+                >
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Add program
+                </button>
+              </div>
+            </section>
+            {selected.length === 0 ? (
+              <div className="panel">
+                <EmptyState icon={BookOpen} title="Room for your possibilities.">
+                  Add a program above to compare its requirements with your current average. Your
+                  shortlist stays private in this browser.
+                </EmptyState>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {selected.map((program, index) => {
+                  const position = academicPosition(average, program.avg);
+                  return (
+                    <article key={program.id} className="panel p-5 sm:p-6">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <span className="number-label mt-1">
+                            {String(index + 1).padStart(2, '0')}
+                          </span>
                           <div className="min-w-0">
-                            <p className="text-xs font-medium text-muted">{program.university}</p>
-                            <h3 className="mt-1 text-lg font-medium text-cream">{program.name}</h3>
-                          </div>
-                          <button
-                            onClick={() => {
-                              setSelected((current) =>
-                                current.filter((item) => item.id !== program.id)
-                              );
-                              setSaved(true);
-                              trackEvent('program_removed', { code: program.code });
-                            }}
-                            aria-label={`Remove ${program.name}`}
-                            className="shrink-0 rounded-lg p-2 text-muted transition hover:bg-panel hover:text-rose"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-
-                        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                          <div>
-                            <p className="text-xs text-muted">Listed average</p>
-                            <p className="mt-1 text-sm font-semibold text-cream">{program.avg}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted">Deadline reference</p>
-                            <p className="mt-1 text-sm font-semibold text-cream">{program.deadline}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted">Academic position</p>
-                            <p className={`mt-1 text-sm font-semibold ${position?.tone ?? 'text-muted'}`}>
-                              {position?.title ?? 'Check current requirements'}
-                            </p>
+                            <p className="text-xs text-muted">{program.university}</p>
+                            <h3 className="mt-1 text-lg font-semibold leading-snug">
+                              {program.name}
+                            </h3>
                           </div>
                         </div>
-
-                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                          <RangeBar label={program.avg} average={average} />
-                          <ProgramTags req={program.req} />
-                        </div>
-                        {position && (
-                          <p className="mt-3 text-xs leading-5 text-muted">
-                            {position.description} Listed requirements: {program.req}
-                          </p>
-                        )}
-                        <div className="mt-2">
-                          <EcFit req={program.req} level={ecLevel} />
-                        </div>
-                        <Link
-                          href={`/simulator?program=${program.code}`}
-                          className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline"
+                        <button
+                          onClick={() => {
+                            setSelected((current) =>
+                              current.filter((item) => item.id !== program.id)
+                            );
+                            setSaved(true);
+                            trackEvent('program_removed', { code: program.code });
+                          }}
+                          aria-label={`Remove ${program.name}`}
+                          className="icon-button shrink-0 hover:!text-rose"
                         >
-                          Practise this application <ArrowRight className="h-4 w-4" />
-                        </Link>
-                      </article>
-                    );
-                  })}
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5 rounded-xl bg-ink p-4 sm:grid-cols-3">
+                        <div>
+                          <p className="text-[11px] text-muted">Reference average</p>
+                          <p className="mt-1 text-sm font-semibold tabular-nums">{program.avg}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-muted">Deadline reference</p>
+                          <p className="mt-1 text-sm font-semibold">{program.deadline}</p>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <p className="text-[11px] text-muted">Academic alignment</p>
+                          <p
+                            className={`mt-1 text-sm font-semibold ${position?.tone ?? 'text-muted'}`}
+                          >
+                            {position?.title ?? 'Check current requirements'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-5 flex flex-wrap items-center justify-between gap-5">
+                        <RangeBar label={program.avg} average={average} />
+                        <ProgramTags req={program.req} />
+                      </div>
+                      {position && (
+                        <p className="mt-4 text-xs leading-6 text-muted">
+                          {position.description} Listed requirements: {program.req}
+                        </p>
+                      )}
+                      <div className="mt-3">
+                        <EcFit req={program.req} level={ecLevel} />
+                      </div>
+                      <Link
+                        href={`/simulator?program=${program.code}`}
+                        className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-accent"
+                      >
+                        Practise this application
+                        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                      </Link>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+            <Notice>
+              Academic alignment is a guide, not an admission probability. Competitive averages are
+              estimates and do not account for applicant pools, prerequisites, contextual review or
+              supplemental performance.
+            </Notice>
+          </div>
+          <aside className="min-w-0 space-y-6">
+            <section className="panel p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="eyebrow">02 / YOUR STARTING POINT</p>
+                  <h2 className="mt-2 text-base font-semibold">Admission average</h2>
                 </div>
-              )}
-            </div>
-
-            <div className="mt-6 border-t border-line pt-5">
-              <label
-                htmlFor="current-average"
-                className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold text-cream"
-              >
-                Current admission average
-                <span className="font-mono text-xl text-accent">{average}%</span>
+                <span className="text-3xl font-semibold tabular-nums tracking-tight text-accent">
+                  {average}
+                  <span className="text-base">%</span>
+                </span>
+              </div>
+              <label htmlFor="current-average" className="mt-4 block text-xs leading-5 text-muted">
+                Adjust your current average to see where it sits on each program’s reference range.
               </label>
               <input
                 id="current-average"
@@ -318,30 +334,35 @@ export default function Planner() {
                 step="1"
                 value={average}
                 onChange={(event) => updateAverage(event.target.value)}
-                className="mt-3 w-full accent-[#d9a94e]"
+                className="mt-4 h-8 w-full accent-accent"
               />
-              <div className="flex justify-between text-xs text-muted">
+              <div className="flex justify-between text-[11px] tabular-nums text-muted">
                 <span>50%</span>
                 <span>100%</span>
               </div>
-              <p className="mt-3 text-xs leading-5 text-muted">
-                This is an academic alignment guide, not an admission probability. Competitive
-                averages are estimates and do not account for applicant pools, prerequisites,
-                contextual review or supplemental performance.
-              </p>
-            </div>
-          </section>
-
-          <aside className="space-y-6">
+            </section>
             <section className="panel p-5 sm:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="eyebrow">Application checklist</p>
-                  <h2 className="mt-2 text-xl font-medium text-cream">Your next steps</h2>
+                  <p className="eyebrow">03 / KEEP THINGS MOVING</p>
+                  <h2 className="section-heading mt-2">Your next steps</h2>
                 </div>
                 <span className="chip">{remaining} left</span>
               </div>
-              <div className="mt-5 space-y-1">
+              <div
+                role="progressbar"
+                aria-label="Application checklist completion"
+                aria-valuenow={completed.length}
+                aria-valuemin={0}
+                aria-valuemax={CHECKLIST.length}
+                className="mt-5 h-1.5 overflow-hidden rounded-full bg-panel-2"
+              >
+                <div
+                  className="h-full rounded-full bg-accent"
+                  style={{ width: `${(completed.length / CHECKLIST.length) * 100}%` }}
+                />
+              </div>
+              <div className="mt-4 space-y-1">
                 {CHECKLIST.map((task, taskIndex) => {
                   const done = completed.includes(task);
                   return (
@@ -355,15 +376,15 @@ export default function Planner() {
                         toggleTask(task);
                       }}
                       aria-pressed={done}
-                      className="flex w-full items-start gap-3 rounded-lg px-2 py-3 text-left transition hover:bg-ink"
+                      className="flex min-h-12 w-full items-start gap-3 rounded-xl py-3 text-left transition-colors hover:bg-ink"
                     >
-                      {done ? (
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                      ) : (
-                        <Circle className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
-                      )}
                       <span
-                        className={`text-sm leading-5 ${done ? 'text-muted line-through' : 'text-cream'}`}
+                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${done ? 'border-accent bg-accent text-white' : 'border-slate/40 bg-panel'}`}
+                      >
+                        {done && <Check className="h-3 w-3" aria-hidden="true" />}
+                      </span>
+                      <span
+                        className={`text-xs leading-6 ${done ? 'text-muted line-through' : 'text-cream'}`}
                       >
                         {task}
                       </span>
@@ -373,26 +394,31 @@ export default function Planner() {
               </div>
               <p
                 aria-live="polite"
-                className={`mt-3 text-xs ${storageError ? 'text-rose' : 'text-muted'}`}
+                className={`mt-4 border-t border-line pt-4 text-[11px] leading-5 ${storageError ? 'text-rose' : 'text-muted'}`}
               >
-                {storageError ?? (saved ? 'Your updates are saved on this device.' : 'Changes save automatically.')}
+                {storageError ??
+                  (saved
+                    ? 'Your updates are saved on this device.'
+                    : 'Changes save automatically.')}
               </p>
             </section>
-
-            <section className="panel border-accent/25 bg-accent-deep/20 p-5 sm:p-6">
-              <p className="eyebrow">Use verified information</p>
-              <h2 className="mt-2 text-xl font-medium text-cream">Double-check every detail.</h2>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                Program requirements can change from year to year. Confirm your selection, deadline
-                and prerequisites in the official portals before submitting.
+            <section className="px-2">
+              <p className="mb-2 flex items-center gap-2 text-xs font-semibold text-cream">
+                <ExternalLink className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+                Go to the source
+              </p>
+              <p className="text-xs leading-6 text-muted">
+                Requirements change. Confirm each program, deadline and prerequisite in the official
+                portals before submitting.
               </p>
               <a
                 href="https://www.ouac.on.ca/"
                 target="_blank"
                 rel="noreferrer"
-                className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline"
+                className="mt-3 inline-flex min-h-10 items-center gap-2 text-xs font-semibold text-accent"
               >
-                Visit OUAC <ExternalLink className="h-4 w-4" />
+                Visit OUAC
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </a>
             </section>
           </aside>

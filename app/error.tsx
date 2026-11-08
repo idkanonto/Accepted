@@ -1,31 +1,37 @@
 'use client';
 
-import { useEffect } from 'react';
-import { trackEvent } from '@/lib/track';
+import { ArrowLeft, RotateCcw, TriangleAlert } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Error({
-  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error('Page error:', error);
-    trackEvent('page_error');
-  }, [error]);
-
   return (
-    <div className="mx-auto my-14 flex max-w-lg flex-col items-center rounded-xl border border-line bg-panel p-8 text-center shadow-sm">
-      <p className="eyebrow">Something went wrong</p>
-      <h1 className="mt-3 text-2xl font-medium text-cream">The page could not finish loading</h1>
-      <p className="mt-3 text-sm leading-6 text-muted">
-        This is a problem on our side, not with your work. Try again — your saved practice and
-        planner entries stay in this browser.
-      </p>
-      <button onClick={() => reset()} className="btn-primary mt-6">
-        Try again
-      </button>
+    <div className="page-container">
+      <section className="panel mx-auto my-10 max-w-xl p-6 text-center sm:p-10">
+        <span className="icon-tile !bg-mortuum !text-rose">
+          <TriangleAlert className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <p className="eyebrow mt-6">LET’S GET YOU BACK ON TRACK</p>
+        <h1 className="mt-3 text-3xl font-semibold">A pause, not the end.</h1>
+        <p className="mt-4 text-sm leading-7 text-muted">
+          Something went wrong loading this part of Accepted. Try again, or return to the overview
+          to choose your next step.
+        </p>
+        <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <button onClick={reset} className="btn-primary">
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
+            Try again
+          </button>
+          <Link href="/" className="btn-ghost">
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Back to overview
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

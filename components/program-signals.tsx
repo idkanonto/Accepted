@@ -13,20 +13,20 @@ export function RangeBar({ label, average }: { label: string; average?: number |
   const right = label.includes('+') ? 100 : pos(range[1]);
   const text = `Reference range ${label}${average != null ? `, your average ${average}%` : ''}`;
   return (
-    <div role="img" aria-label={text} className="min-w-[140px]">
-      <div className="relative h-2 rounded-full bg-line">
+    <div role="img" aria-label={text} className="reference-band">
+      <div className="relative h-1.5 rounded-full bg-line">
         <div
           className="absolute h-full rounded-full bg-accent"
           style={{ left: `${left}%`, width: `${Math.max(right - left, 2)}%` }}
         />
         {average != null && (
           <div
-            className="absolute -top-1 h-4 w-1 rounded bg-cream ring-2 ring-ink"
+            className="absolute -top-1 h-3.5 w-1 rounded bg-cream ring-2 ring-panel"
             style={{ left: `calc(${pos(average)}% - 2px)` }}
           />
         )}
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-muted">
+      <div className="mt-2 flex justify-between text-[10px] tabular-nums text-muted">
         <span>{MIN}%</span>
         {average != null && <span className="text-cream">You {average}%</span>}
         <span>{MAX}%</span>
@@ -38,7 +38,7 @@ export function RangeBar({ label, average }: { label: string; average?: number |
 export function ProgramTags({ req }: { req: string }) {
   const { longAnswer, background } = suppSignals(req);
   if (!longAnswer && !background) return null;
-  const chip = 'rounded-md border border-line px-2 py-0.5 text-[11px] font-medium text-accent-soft';
+  const chip = 'rounded-md bg-panel-2 px-2 py-1 text-[10px] font-medium text-muted';
   return (
     <div className="flex flex-wrap gap-1.5">
       {longAnswer && <span className={chip}>Long answer</span>}

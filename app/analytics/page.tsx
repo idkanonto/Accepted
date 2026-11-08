@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function AnalyticsPage() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+    <div className="page-container">
       <RequireAuth what="your progress">
         <AnalyticsDashboard />
       </RequireAuth>

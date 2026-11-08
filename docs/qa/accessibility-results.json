@@ -1,0 +1,92 @@
+[
+  {
+    "width": 1440,
+    "path": "/",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "path": "/vault",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "path": "/planner",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "path": "/simulator",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "path": "/interview",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "path": "/ec-rater",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "path": "/analytics",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "path": "/login",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "path": "/does-not-exist",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "path": "/",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "path": "/vault",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "path": "/planner",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "path": "/simulator",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "path": "/interview",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "path": "/ec-rater",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "path": "/analytics",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "path": "/login",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "path": "/does-not-exist",
+    "violations": []
+  }
+]
