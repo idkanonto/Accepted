@@ -1,14 +1,14 @@
-import Planner from '@/components/planner';
+import Planner from "@/components/planner";
 
 export const metadata = {
-  title: 'OUAC & Chance Planner',
+  title: "OUAC & Chance Planner",
   description:
-    'Organize Ontario university choices, track application steps and compare your average with broad competitive reference ranges.',
+    "Organize Ontario university choices, track application steps and compare your average with broad competitive reference ranges.",
 };
 
 export default function PlannerPage() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className="workspace-page">
       <Planner />
     </div>
   );

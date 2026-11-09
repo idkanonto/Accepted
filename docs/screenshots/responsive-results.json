@@ -1,0 +1,208 @@
+{
+  "cases": [
+    {
+      "route": "/",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "route": "/planner",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "route": "/vault",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "route": "/simulator",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "route": "/interview",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "route": "/ec-rater",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "route": "/analytics",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "route": "/login",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "route": "/",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "route": "/planner",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "route": "/vault",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "route": "/simulator",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "route": "/interview",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "route": "/ec-rater",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "route": "/analytics",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "route": "/login",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "route": "/",
+      "width": 834,
+      "overflow": false
+    },
+    {
+      "route": "/planner",
+      "width": 834,
+      "overflow": false
+    },
+    {
+      "route": "/vault",
+      "width": 834,
+      "overflow": false
+    },
+    {
+      "route": "/simulator",
+      "width": 834,
+      "overflow": false
+    },
+    {
+      "route": "/interview",
+      "width": 834,
+      "overflow": false
+    },
+    {
+      "route": "/ec-rater",
+      "width": 834,
+      "overflow": false
+    },
+    {
+      "route": "/analytics",
+      "width": 834,
+      "overflow": false
+    },
+    {
+      "route": "/login",
+      "width": 834,
+      "overflow": false
+    },
+    {
+      "route": "/",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "route": "/planner",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "route": "/vault",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "route": "/simulator",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "route": "/interview",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "route": "/ec-rater",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "route": "/analytics",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "route": "/login",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "route": "/",
+      "width": 360,
+      "overflow": false
+    },
+    {
+      "route": "/planner",
+      "width": 360,
+      "overflow": false
+    },
+    {
+      "route": "/vault",
+      "width": 360,
+      "overflow": false
+    },
+    {
+      "route": "/simulator",
+      "width": 360,
+      "overflow": false
+    },
+    {
+      "route": "/interview",
+      "width": 360,
+      "overflow": false
+    },
+    {
+      "route": "/ec-rater",
+      "width": 360,
+      "overflow": false
+    },
+    {
+      "route": "/analytics",
+      "width": 360,
+      "overflow": false
+    },
+    {
+      "route": "/login",
+      "width": 360,
+      "overflow": false
+    }
+  ],
+  "pageErrors": [],
+  "pageErrorDetails": [],
+  "consoleErrors": [],
+  "externalCallsForwarded": 0
+}

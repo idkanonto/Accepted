@@ -1,32 +1,23 @@
-'use client';
-
-import Link from 'next/link';
-import { useAuth } from './auth-provider';
-import AuthForm from './auth-form';
+"use client";
+import Link from "next/link";
+import { useAuth } from "./auth-provider";
+import AuthForm from "./auth-form";
+import { useHydrated } from "./use-hydrated";
+import { LoadingState, Notice } from "./ui";
 
 export default function LoginCard() {
   const { user, loading } = useAuth();
-
-  if (loading) {
-    return <p className="text-sm text-muted">Loading…</p>;
-  }
-
-  if (user) {
+  const hydrated = useHydrated();
+  if (!hydrated || loading)
+    return <LoadingState title="Checking your account…" />;
+  if (user)
     return (
-      <div className="space-y-4 text-center">
-        <p className="text-sm text-muted">
-          You&apos;re signed in as{' '}
-          <span className="font-medium text-cream">{user.email}</span>.
-        </p>
-        <Link
-          href="/"
-          className="inline-flex items-center justify-center rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-ink transition hover:bg-accent-soft"
-        >
-          Back to home
+      <div className="space-y-6">
+        <Notice tone="success">You’re signed in as {user.email}.</Notice>
+        <Link href="/planner" className="btn-primary w-full">
+          Go to your planner
         </Link>
       </div>
     );
-  }
-
   return <AuthForm />;
 }

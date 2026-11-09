@@ -1,10 +1,16 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { User } from '@supabase/supabase-js';
-import { getSupabase } from '@/lib/supabase/client';
-import AuthModal from './auth-modal';
-import { trackEvent } from '@/lib/track';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import type { User } from "@supabase/supabase-js";
+import { getSupabase } from "@/lib/supabase/client";
+import AuthModal from "./auth-modal";
+import { trackEvent } from "@/lib/track";
 
 type AuthContextValue = {
   user: User | null;
@@ -23,7 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
-    getSupabase().auth
+    let client;
+    try {
+      client = getSupabase();
+    } catch {
+      // Public pages remain available when sign-in is temporarily unavailable.
+      // Protected tools still require a real Supabase user.
+      setLoading(false);
+      return;
+    }
+    client.auth
       .getSession()
       .then(({ data }) => {
         setUser(data.session?.user ?? null);
@@ -31,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => setLoading(false));
 
-    const { data: sub } = getSupabase().auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = client.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
       if (session?.user) setAuthOpen(false);
@@ -47,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     openAuth: () => setAuthOpen(true),
     closeAuth: () => setAuthOpen(false),
     signOut: async () => {
-      trackEvent('sign_out');
+      trackEvent("sign_out");
       await getSupabase().auth.signOut();
       setUser(null);
     },
@@ -63,6 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
   return ctx;
 }

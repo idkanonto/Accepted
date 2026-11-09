@@ -188,3 +188,15 @@ Planner's **Historical averages** tab fetches this file on demand.
 - `public/history.json` — historical admission aggregates.
 - `lib/queue.ts` — evaluation, quota and queue recovery.
 - `supabase/migrations/001_init.sql` — the database schema.
+
+## Frontend design and verification
+
+The light application-folio design is documented in [REDESIGN_BRIEF.md](REDESIGN_BRIEF.md)
+and `.interface-design/system.md`. See the [desktop/mobile screenshot gallery](docs/SCREENSHOTS.md)
+and [frontend verification guide](docs/FRONTEND_VERIFICATION.md) for browser fixtures,
+regression coverage, accessibility checks and the existing lint-configuration limitation.
+The redesign preserves the backend integrations, data, persistence and analytics described above.
+
+Live service activation is a separate step. The exact values and follow-up checks
+are preserved in [BACKEND_CONNECTION_CHECKLIST.md](BACKEND_CONNECTION_CHECKLIST.md).
+No real Supabase or Groq credentials are required to build or review the frontend.
