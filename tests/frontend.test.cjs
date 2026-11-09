@@ -251,7 +251,7 @@ test("program search, university and requirement filters lead to the matching pr
     await page.getByRole("searchbox").fill("a-program-that-does-not-exist");
     await expect(
       page.getByRole("heading", {
-        name: "A different search might open a door.",
+        name: "No programs match these filters.",
       }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Clear filters" }).click();

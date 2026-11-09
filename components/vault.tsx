@@ -69,7 +69,7 @@ export default function Vault() {
       <PageHeader
         eyebrow="Plan / Program vault"
         title="Find a program. See the possibilities."
-        description="A clearer view of Ontario’s supplemental applications. Compare what each program asks, then give yourself room to prepare."
+        description="Compare supplemental requirements by university and program. Find out which applications need writing, an interview, or an activity profile."
         action={
           <Badge>
             <BookOpen size={13} />
@@ -156,7 +156,7 @@ export default function Vault() {
         {rows.length === 0 ? (
           <EmptyState
             icon={<SlidersHorizontal />}
-            title="A different search might open a door."
+            title="No programs match these filters."
             description={
               <>
                 No programs match “{query || "your selected filters"}”. Try a

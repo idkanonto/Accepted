@@ -27,7 +27,7 @@ const JOURNEY = [
     number: "01",
     icon: BookOpen,
     title: "Find your direction.",
-    body: "Explore Ontario programs, compare what they ask for, and bring your shortlist into one thoughtful plan.",
+    body: "Compare program requirements, then keep your university choices and application checklist in one place.",
     links: [
       { href: "/vault", label: "Explore programs" },
       { href: "/planner", label: "Build your plan" },
@@ -47,7 +47,7 @@ const JOURNEY = [
     number: "03",
     icon: Sprout,
     title: "See what you bring.",
-    body: "Understand the impact of your activities, reflect on your progress, and choose one useful thing to improve next.",
+    body: "Review how you describe your activities. Use your practice history to choose what to work on next.",
     links: [
       { href: "/ec-rater", label: "Review your activities" },
       { href: "/analytics", label: "See your progress" },
@@ -70,7 +70,7 @@ export default function Home() {
           <div>
             <p className="eyebrow flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-accent" /> For
-              Ontario’s next chapter
+              Ontario university applicants
             </p>
             <h1 className="hero-headline">
               Your future is
@@ -80,9 +80,8 @@ export default function Home() {
               <em>Let’s give it a plan.</em>
             </h1>
             <p className="hero-description">
-              The workspace for Ontario university applicants. Find your
-              programs, prepare your supplemental applications, and practise
-              showing up as yourself.
+              Compare Ontario programs, build your shortlist, and practise
+              supplemental answers with feedback from Nova.
             </p>
             <div className="hero-cta">
               <TrackedLink
@@ -91,7 +90,7 @@ export default function Home() {
                 properties={{ cta: "plan" }}
                 className="btn-primary"
               >
-                Build my application plan <ArrowRight size={16} />
+                Build my shortlist <ArrowRight size={16} />
               </TrackedLink>
               <TrackedLink
                 href="/vault"
@@ -103,9 +102,8 @@ export default function Home() {
               </TrackedLink>
             </div>
             <p className="hero-note">
-              Made for Grade 12. Built around the work that comes before
-              “submit.” An independent resource — always verify details with
-              OUAC and your university.
+              Start your shortlist without an account. Your plan stays in
+              this browser.
             </p>
           </div>
           <div className="product-preview">
@@ -124,8 +122,8 @@ export default function Home() {
                   <Badge>Example workspace</Badge>
                 </div>
                 <h2>
-                  A little more clarity.
-                  <br />A clear next step.
+                  Your shortlist.
+                  <br />Your next steps.
                 </h2>
                 <div className="preview-program">
                   <span className="folio-number">01</span>
@@ -170,8 +168,8 @@ export default function Home() {
                       Meet Nova, your practice coach.
                     </p>
                     <p>
-                      Specific feedback. Clear next steps. A stronger answer,
-                      one attempt at a time.
+                      Get a score, feedback, and a model rewrite for your
+                      written practice.
                     </p>
                   </div>
                 </div>
@@ -201,14 +199,14 @@ export default function Home() {
           <div>
             <p className="eyebrow">A little less scattered</p>
             <h2 id="journey-heading">
-              One journey.
+              Make your shortlist.
               <br />
-              Room for every moving part.
+              Prepare for what comes next.
             </h2>
           </div>
           <p>
-            From your first shortlist to your next practice response, keep your
-            applications moving with purpose.
+            Check what each program asks for, then choose the practice
+            that fits your application.
           </p>
         </div>
         <div>
@@ -229,7 +227,7 @@ export default function Home() {
                 <h3>{item.title}</h3>
               </div>
               <p>{item.body}</p>
-              <div className="flex flex-col gap-3">
+              <div className="journey-links">
                 {item.links.map((link) => (
                   <Link
                     href={link.href}
@@ -250,14 +248,14 @@ export default function Home() {
           <div>
             <p className="eyebrow">Practice with intention</p>
             <h2>
-              A blank page feels
+              Practise the answer
               <br />
-              better with a little practice.
+              before you submit it.
             </h2>
             <p className="body-copy mt-4">
-              Meet the supplemental application before it meets you. Practise
-              under real preparation and response limits, then get a clear
-              score, useful feedback, and a model rewrite from Nova.
+              Choose a program and answer a representative prompt against
+              the clock. Nova gives your written response a score, specific
+              feedback, and a model rewrite to learn from.
             </p>
             <div className="mt-5 flex flex-wrap gap-4 text-xs text-secondary">
               <span className="flex items-center gap-2">
@@ -274,7 +272,7 @@ export default function Home() {
               href="/simulator"
               event="sample_prompt_started"
             >
-              Step into the practice studio <ArrowRight size={15} />
+              Choose a practice prompt <ArrowRight size={15} />
             </TrackedLink>
           </div>
           <div className="sample-question">
@@ -327,9 +325,9 @@ export default function Home() {
         <div>
           <p className="eyebrow mb-3">Start where you are</p>
           <h2>
-            You don’t need every answer.
+            Give your next answer
             <br />
-            Just a place to take the next step.
+            a practice run.
           </h2>
         </div>
         <TrackedLink

@@ -190,7 +190,7 @@ export default function Planner() {
       <PageHeader
         eyebrow="Plan / Your application folio"
         title="Your next chapter, in order."
-        description="A thoughtful home for your university choices, the details to check, and the next step to take."
+        description="Shortlist your programs, compare academic reference ranges, and track the application steps you still need to complete."
         action={
           <Badge>
             <ShieldCheck size={13} />
@@ -226,7 +226,7 @@ export default function Planner() {
             <Panel className="panel-pad h-fit">
               <SectionHeading
                 title="Your program shortlist"
-                description="Make a little room for the possibilities."
+                description="Choose a university and program below to add it to your plan."
                 action={<Badge tone="accent">{selected.length} selected</Badge>}
               />
               <div className="mt-5 flex flex-col gap-2 sm:flex-row">
@@ -400,7 +400,7 @@ export default function Planner() {
               <Panel className="panel-pad">
                 <SectionHeading
                   title="Your next steps"
-                  description="Small steps. A clearer application."
+                  description="Check off each step as you complete it."
                   action={<Badge>{remaining} left</Badge>}
                 />
                 <progress

@@ -1,7 +1,13 @@
 # Accepted application folio
 
-Light mode: warm canvas #f7f7f4, white paper, graphite #232735, indigo #5146cf.
-Subtle layered shadow is the elevation strategy; borders stay quiet. 4px spacing
+Light mode: warm canvas #f3eee4, ivory paper #fffcf5, deep green ink #243c32,
+forest actions #235947 and copper editorial accents #8b482f. Sage #e2eadf is the
+feedback/selection wash; parchment #e8d9ba frames the homepage folio. The desktop
+rail and mobile dock use forest #1c3c32 with light text and warm gold #e3bf87 active
+items. Copper is for editorial emphasis, not a status. Success, warning and error
+retain separate labeled moss, ochre and brick tones. Forms use a visible warm-gray
+control border; keyboard focus stays visible on both light and dark surfaces.
+Subtle layered shadow is the elevation strategy; decorative borders stay quiet. 4px spacing
 base. Controls are at least 44px high, with 10px corners; surfaces 14px and native
 modals 20px. Desktop workspace rail is 224px; content is at most 1200px with
 24–40px gutters. Mobile uses 20px gutters and a compact bottom destination bar.

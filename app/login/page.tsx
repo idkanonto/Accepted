@@ -12,13 +12,13 @@ export default function LoginPage() {
     <div className="workspace-page">
       <PageHeader
         eyebrow="Your Accepted account"
-        title="Good to have you here."
-        description="Pick up your practice. Keep your progress. Take the next step at your own pace."
+        title="Keep your practice together."
+        description="Sign in to return to your scored responses, Nova’s feedback, and your practice history."
       />
       <section className="panel mx-auto grid max-w-4xl overflow-hidden md:grid-cols-2">
         <div className="p-7 sm:p-10">
           <h2 className="mb-6 text-xl font-semibold tracking-tight">
-            Your next chapter starts here.
+            Your Accepted account
           </h2>
           <LoginCard />
         </div>
@@ -26,11 +26,11 @@ export default function LoginPage() {
           <span className="empty-symbol">
             <Sparkles size={23} />
           </span>
-          <p className="eyebrow">A little practice. A clearer plan.</p>
+          <p className="eyebrow">Your practice history</p>
           <h2 className="mt-4 font-display text-3xl font-normal leading-tight">
-            Bring your whole
+            See what you tried.
             <br />
-            application together.
+            Know what to practise next.
           </h2>
           <ul className="mt-6 space-y-4">
             {[
