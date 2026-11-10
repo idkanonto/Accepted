@@ -1,0 +1,38 @@
+[
+  {
+    "route": "/",
+    "violations": []
+  },
+  {
+    "route": "/planner",
+    "violations": []
+  },
+  {
+    "route": "/vault",
+    "violations": []
+  },
+  {
+    "route": "/simulator",
+    "violations": []
+  },
+  {
+    "route": "/interview",
+    "violations": []
+  },
+  {
+    "route": "/ec-rater",
+    "violations": []
+  },
+  {
+    "route": "/analytics",
+    "violations": []
+  },
+  {
+    "route": "/login",
+    "violations": []
+  },
+  {
+    "route": "auth-dialog",
+    "violations": []
+  }
+]

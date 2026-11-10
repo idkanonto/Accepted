@@ -1,100 +1,272 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LogOut, Menu, X } from 'lucide-react';
-import { useAuth } from './auth-provider';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  ArrowUpRight,
+  BookOpen,
+  ChartNoAxesCombined,
+  Check,
+  ChevronRight,
+  ClipboardList,
+  LayoutList,
+  LogOut,
+  Menu,
+  Mic,
+  PenLine,
+  Sprout,
+} from "lucide-react";
+import { useAuth } from "./auth-provider";
+import { useHydrated } from "./use-hydrated";
+import Dialog from "./dialog";
 
 const LINKS = [
-  { href: '/planner', label: 'Planner' },
-  { href: '/vault', label: 'Programs' },
-  { href: '/simulator', label: 'Practice' },
-  { href: '/interview', label: 'Interview' },
-  { href: '/ec-rater', label: 'ECs' },
-  { href: '/analytics', label: 'Progress' },
+  {
+    href: "/planner",
+    label: "Application planner",
+    short: "My plan",
+    icon: LayoutList,
+    group: "Plan",
+  },
+  {
+    href: "/vault",
+    label: "Program vault",
+    short: "Programs",
+    icon: BookOpen,
+    group: "Plan",
+  },
+  {
+    href: "/simulator",
+    label: "Practice studio",
+    short: "Practice",
+    icon: PenLine,
+    group: "Prepare",
+  },
+  {
+    href: "/interview",
+    label: "Mock interview",
+    short: "Interview",
+    icon: Mic,
+    group: "Prepare",
+  },
+  {
+    href: "/ec-rater",
+    label: "Activity portfolio",
+    short: "Activities",
+    icon: Sprout,
+    group: "Prepare",
+  },
+  {
+    href: "/analytics",
+    label: "Nova analytics",
+    short: "Progress",
+    icon: ChartNoAxesCombined,
+    group: "Reflect",
+  },
 ];
+
+export function Brand() {
+  return (
+    <Link href="/" className="brand" aria-label="Accepted! home">
+      <span className="brand-mark">
+        <Check size={19} strokeWidth={2.5} />
+      </span>
+      <span>
+        Accepted<span className="text-accent">!</span>
+      </span>
+    </Link>
+  );
+}
 
 export default function Nav() {
   const pathname = usePathname();
-  const { user, loading, openAuth, signOut } = useAuth();
+  const home = pathname === "/";
+  const {
+    user: sessionUser,
+    loading: sessionLoading,
+    openAuth,
+    signOut,
+  } = useAuth();
+  const hydrated = useHydrated();
+  const user = hydrated ? sessionUser : null;
+  const loading = !hydrated || sessionLoading;
   const [open, setOpen] = useState(false);
-
+  const [signingOut, setSigningOut] = useState(false);
+  const [accountError, setAccountError] = useState("");
+  const current = LINKS.find((link) => link.href === pathname);
   useEffect(() => setOpen(false), [pathname]);
 
-  const linkClass = (href: string) =>
-    `rounded-lg px-3 py-2 text-sm font-medium transition ${
-      pathname === href ? 'bg-panel-2 text-cream' : 'text-muted hover:text-cream'
-    }`;
-
-  const account = loading ? null : user ? (
+  async function leave() {
+    setSigningOut(true);
+    setAccountError("");
+    try {
+      await signOut();
+    } catch {
+      setAccountError("Could not sign out. Please try again.");
+    } finally {
+      setSigningOut(false);
+    }
+  }
+  const account = loading ? (
+    <span className="fine-print" role="status">
+      Loading account…
+    </span>
+  ) : user ? (
     <button
-      onClick={signOut}
-      className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-muted transition hover:text-cream"
+      className="btn-quiet"
+      onClick={leave}
+      disabled={signingOut}
+      aria-label="Sign out"
     >
-      <LogOut className="h-4 w-4" /> Sign out
+      <LogOut size={15} />
+      <span>{signingOut ? "Signing out…" : "Sign out"}</span>
     </button>
   ) : (
-    <button onClick={openAuth} className="btn-primary px-4 py-2">
-      Sign in
+    <button className="btn-primary" onClick={openAuth}>
+      Sign in <ChevronRight size={15} />
     </button>
+  );
+  const navigation = (mobile = false) => (
+    <>
+      {["Plan", "Prepare", "Reflect"].map((group) => (
+        <div className="nav-section" key={group}>
+          <p className="nav-section-label">{group}</p>
+          {LINKS.filter((link) => link.group === group).map((link) => (
+            <Link
+              key={link.href}
+              className="workspace-link"
+              href={link.href}
+              aria-current={pathname === link.href ? "page" : undefined}
+              onClick={() => mobile && setOpen(false)}
+            >
+              <link.icon size={17} strokeWidth={1.7} />
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      ))}
+    </>
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-ink/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-baseline gap-1.5">
-          <span className="font-display text-xl font-semibold tracking-tight text-accent">
-            Accepted!
-          </span>
-          <span className="rounded border border-accent/40 px-1 text-[10px] font-semibold tracking-wider text-accent">
-            ON
-          </span>
-        </Link>
-
-        <nav aria-label="Main navigation" className="hidden items-center gap-1 md:flex">
-          {LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              aria-current={pathname === l.href ? 'page' : undefined}
-              className={linkClass(l.href)}
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="hidden md:block">{account}</div>
-
-        <button
-          onClick={() => setOpen((o) => !o)}
-          aria-label={open ? 'Close menu' : 'Open menu'}
-          aria-expanded={open}
-          className="rounded-lg p-2 text-cream md:hidden"
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-      </div>
-
-      {open && (
-        <nav
-          aria-label="Mobile navigation"
-          className="flex flex-col gap-1 border-t border-line px-4 py-3 md:hidden"
-        >
-          {LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              aria-current={pathname === l.href ? 'page' : undefined}
-              className={linkClass(l.href)}
-            >
-              {l.label}
-            </Link>
-          ))}
-          <div className="pt-2">{account}</div>
-        </nav>
+    <>
+      {home ? (
+        <header className="marketing-nav">
+          <div className="marketing-nav-inner">
+            <Brand />
+            <nav aria-label="Main navigation" className="top-links">
+              <Link href="/vault">Explore programs</Link>
+              <Link href="/planner">Plan your applications</Link>
+              <Link href="/simulator">Meet your practice studio</Link>
+            </nav>
+            <div className="flex items-center gap-2">
+              {account}
+              <button
+                className="icon-button mobile-only"
+                onClick={() => setOpen(true)}
+                aria-label="Open navigation"
+              >
+                <Menu size={21} />
+              </button>
+            </div>
+          </div>
+        </header>
+      ) : (
+        <>
+          <aside className="workspace-sidebar">
+            <Brand />
+            <span className="sidebar-caption">
+              Your next chapter, in order.
+            </span>
+            <nav aria-label="Main navigation">{navigation()}</nav>
+            <div className="sidebar-bottom">
+              <div className="sidebar-note">
+                <ClipboardList size={17} className="mb-2 text-accent" />
+                <p>
+                  A little progress,
+                  <br />
+                  one application at a time.
+                </p>
+              </div>
+              {user ? (
+                <div className="account-button">
+                  <span className="account-avatar">
+                    {user.email?.slice(0, 1).toUpperCase() ?? "A"}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium">{user.email}</p>
+                    <p className="text-[10px] text-muted">Your workspace</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="px-3">{account}</div>
+              )}
+            </div>
+          </aside>
+          <header className="workspace-topbar">
+            <div className="desktop-only breadcrumb">
+              <span>Workspace</span>
+              <ChevronRight size={12} />
+              <strong>{current?.label ?? "Your account"}</strong>
+            </div>
+            <div className="mobile-only">
+              <Brand />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="desktop-only fine-print">
+                Made for Ontario applicants
+              </span>
+              {user && account}
+              <div className="mobile-only">{!user && account}</div>
+              <button
+                className="icon-button mobile-only"
+                onClick={() => setOpen(true)}
+                aria-label="Open navigation"
+              >
+                <Menu size={21} />
+              </button>
+            </div>
+          </header>
+          <nav aria-label="Quick navigation" className="mobile-dock">
+            {LINKS.filter((link) =>
+              ["/planner", "/vault", "/simulator", "/analytics"].includes(
+                link.href,
+              ),
+            ).map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={pathname === link.href ? "page" : undefined}
+              >
+                <link.icon size={19} strokeWidth={1.7} />
+                {link.short}
+              </Link>
+            ))}
+          </nav>
+        </>
       )}
-    </header>
+      {accountError && (
+        <p
+          role="alert"
+          className="notice notice-error fixed bottom-24 right-4 z-50"
+        >
+          {accountError}
+        </p>
+      )}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Your Accepted workspace"
+        className="navigation-dialog"
+      >
+        <nav aria-label="Mobile navigation">{navigation(true)}</nav>
+        <div className="mt-6 border-t border-line pt-4">
+          <Link className="text-link" href="/" onClick={() => setOpen(false)}>
+            Product overview <ArrowUpRight size={15} />
+          </Link>
+        </div>
+      </Dialog>
+    </>
   );
 }
